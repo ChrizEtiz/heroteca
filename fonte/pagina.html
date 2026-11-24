@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heroteca · diário de heróis</title>
+<meta name="description" content="Diário de filmes, séries, desenhos e HQs de heróis, com notas para cada versão de cada personagem e o jogo diário Heroidle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Semi+Condensed:wght@500;600;700;800&display=swap">
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<button class="pular bt" data-acao="pular">Pular para o conteúdo</button>
+<header class="topo">
+  <div class="topo-in">
+    <a class="marca" href="#inicio" aria-label="Heroteca, início"><span class="marca-logo">Heroteca</span><span class="marca-beta">beta</span></a>
+    <nav class="nav" aria-label="Seções">
+      <a href="#inicio" data-nav="inicio">Início</a>
+      <a href="#explorar" data-nav="explorar">Explorar</a>
+      <a href="#jogo" data-nav="jogo">Heroidle</a>
+      <a href="#diario" data-nav="diario">Diário</a>
+      <a href="#listas" data-nav="listas">Listas</a>
+      <a href="#perfil" data-nav="perfil">Perfil</a>
+    </nav>
+    <div class="topo-acoes">
+      <button class="bt bt--forte topo-reg" data-acao="registrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Registrar</button>
+      <button class="icbt topo-mais" data-acao="registrar" aria-label="Registrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="icbt" data-acao="buscar" aria-label="Buscar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4.2-4.2"/></svg></button>
+    </div>
+  </div>
+</header>
+<main id="conteudo" class="pagina" tabindex="-1">
+  <p class="carregando">Carregando o multiverso...</p>
+</main>
+<footer class="rodape">
+  <div class="rodape-in">
+    <p><strong>Heroteca (beta)</strong> · um diário de fã para fãs de heróis · <a href="#sobre">Sobre o beta</a> · <a href="#listas">Listas</a> · <a href="#ranking">Ranking</a></p>
+    <p id="armazem-rodape"></p>
+    <p>As capas daqui são desenhadas pela Heroteca. Na versão no ar, os pôsteres vêm do TMDB: este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.</p>
+    <p>Marvel, DC e os demais personagens, nomes e marcas pertencem aos seus donos. Este é um projeto de fã, sem ligação com essas empresas.</p>
+  </div>
+</footer>
+<nav class="abas" aria-label="Seções">
+  <a href="#inicio" data-nav="inicio"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>Início</a>
+  <a href="#explorar" data-nav="explorar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14zM20 20l-4.2-4.2"/></svg>Explorar</a>
+  <a href="#jogo" data-nav="jogo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM15 15.5a1.9 1.9 0 1 1 2.6 1.8c-.6.3-.6.7-.6 1.2M17 20.6v.1"/></svg>Heroidle</a>
+  <a href="#diario" data-nav="diario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg>Diário</a>
+  <a href="#perfil" data-nav="perfil"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg>Perfil</a>
+</nav>
+<div id="modal" class="modal" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<div id="pow" class="pow" hidden aria-hidden="true"></div>
+<script>
+(() => {
+/*JS*/
+})();
+</script>
+</body>
+</html>
