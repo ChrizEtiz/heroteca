@@ -738,7 +738,7 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.45; }
   <div class="rodape-in">
     <p><strong>Heroteca (beta)</strong> · um diário de fã para fãs de heróis · <a href="#sobre">Sobre o beta</a> · <a href="#listas">Listas</a> · <a href="#ranking">Ranking</a></p>
     <p id="armazem-rodape"></p>
-    <p>As capas daqui são desenhadas pela Heroteca. Na versão no ar, os pôsteres vêm do TMDB: este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.</p>
+    <p>Pôsteres e dados de streaming: <a href="https://www.themoviedb.org/">TMDB</a> e JustWatch. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Quando não há pôster, aparece uma capa desenhada pela Heroteca.</p>
     <p>Marvel, DC e os demais personagens, nomes e marcas pertencem aos seus donos. Este é um projeto de fã, sem ligação com essas empresas.</p>
   </div>
 </footer>
@@ -759,7 +759,9 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.45; }
 const NOME_DO_SITE = "Heroteca";            // nome provisório
 const NOME_DO_JOGO = "Heroidle";
 const ENDERECO_DO_SITE = "";                // quando tiver domínio, ex.: "https://heroteca.com.br"
-const TMDB_API_KEY = "";                    // chave grátis do TMDB (v3) ou token de leitura (v4). Vazia = capas desenhadas.
+// Supabase: a chave "anon" é pública por natureza (o que protege os dados são as regras do banco).
+const SUPABASE_URL = "https://sdjuzthrlelhrevgaihz.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkanV6dGhybGVsaHJldmdhaWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0ODc0NzIsImV4cCI6MjExMTA2MzQ3Mn0.aJZitwT6za_ffoRfncICGZC7xiK2haJpAut7i7hUVB0";
 const FUSO = "America/Sao_Paulo";
 const DATA_DE_LANCAMENTO = "2026-11-22";    // dia nº 1 do Heroidle
 const SEMENTE = 20261122;                   // mesma semente do Heroidle avulso: o personagem do dia é o mesmo
@@ -2674,34 +2676,31 @@ function atualizarContagem() {
   $$("[data-contagem]").forEach((el) => { el.textContent = t; });
 }
 
-// ================= Pôsteres do TMDB (só com a chave, no site de verdade) =================
-// Busca pelo título original + ano, em português do Brasil, e guarda o resultado no aparelho.
-// Sem chave (como aqui no beta), nada é buscado e ficam as capas desenhadas.
-const TMDB = { ativo: !!TMDB_API_KEY, cache: null, fila: [], rodando: 0, falhou: false };
+// ================= Pôsteres do TMDB =================
+// O site pergunta à ponte "tmdb" no Supabase, que guarda a chave do TMDB em segredo.
+// Dentro do Claude (artefato) não dá para carregar nada de fora, então ficam as capas desenhadas.
+const TMDB = { ativo: FORA_DO_CLAUDE, cache: null, fila: [], rodando: 0, falhou: false };
+const LINGUA_TMDB = "pt-BR";
 function tmdbCache() {
-  if (!TMDB.cache) { try { TMDB.cache = JSON.parse(localStorage.getItem("heroteca-tmdb-v1")) || {}; } catch (e) { TMDB.cache = {}; } }
+  if (!TMDB.cache) { try { TMDB.cache = JSON.parse(localStorage.getItem("heroteca-tmdb-v2")) || {}; } catch (e) { TMDB.cache = {}; } }
   return TMDB.cache;
 }
-function tmdbGuardar() { try { localStorage.setItem("heroteca-tmdb-v1", JSON.stringify(TMDB.cache)); } catch (e) { /* sem cache */ } }
-async function tmdbGet(caminho, params = {}) {
-  const u = new URL("https://api.themoviedb.org/3" + caminho);
-  const v4 = TMDB_API_KEY.length > 40;
-  if (!v4) u.searchParams.set("api_key", TMDB_API_KEY);
+function tmdbGuardar() { try { localStorage.setItem("heroteca-tmdb-v2", JSON.stringify(TMDB.cache)); } catch (e) { /* sem cache */ } }
+async function ponte(params) {
+  const u = new URL(SUPABASE_URL + "/functions/v1/tmdb");
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  const r = await fetch(u, v4 ? { headers: { Authorization: "Bearer " + TMDB_API_KEY, accept: "application/json" } } : {});
-  if (!r.ok) throw new Error("tmdb " + r.status);
+  const r = await fetch(u, { headers: { Authorization: "Bearer " + SUPABASE_ANON, apikey: SUPABASE_ANON } });
+  if (r.status === 503) { TMDB.falhou = true; throw new Error("sem chave"); }
+  if (!r.ok) throw new Error("ponte " + r.status);
   return r.json();
 }
 async function tmdbInfo(o) {
   const c = tmdbCache();
-  if (c[o.id] !== undefined) return c[o.id];
-  const tipo = o.tmdb.t === "tv" ? "tv" : "movie";
-  const base = { query: o.tmdb.q, language: "pt-BR", include_adult: "false" };
-  let j = await tmdbGet(`/search/${tipo}`, { ...base, [tipo === "movie" ? "year" : "first_air_date_year"]: String(o.tmdb.y) });
-  if (!j.results || !j.results.length) j = await tmdbGet(`/search/${tipo}`, base);
-  const r = j.results && j.results[0];
-  const info = r ? { id: Number(r.id), p: /^\/[\w.-]+$/.test(r.poster_path || "") ? r.poster_path : "", b: /^\/[\w.-]+$/.test(r.backdrop_path || "") ? r.backdrop_path : "" } : null;
-  c[o.id] = info;
+  const k = o.id + "|" + LINGUA_TMDB;
+  if (c[k] !== undefined) return c[k];
+  const j = await ponte({ acao: "busca", tipo: o.tmdb.t === "tv" ? "tv" : "movie", q: o.tmdb.q, y: String(o.tmdb.y), lang: LINGUA_TMDB });
+  const info = j && j.id ? { id: Number(j.id), p: /^\/[\w.-]+$/.test(j.p || "") ? j.p : "", b: /^\/[\w.-]+$/.test(j.b || "") ? j.b : "" } : null;
+  c[k] = info;
   tmdbGuardar();
   return info;
 }
@@ -2713,29 +2712,25 @@ function bombear() {
     fn().catch(() => { /* sem pôster: fica a capa desenhada */ }).finally(() => { TMDB.rodando--; bombear(); });
   }
 }
+function mostrarImg(img, url) {
+  img.onload = () => { img.hidden = false; };
+  img.onerror = () => img.remove();
+  img.src = url;
+}
 function hidratarImagens(raiz = document) {
   if (!TMDB.ativo || !raiz) return;
+  if (TMDB.falhou) { $$("[data-provedores]", raiz).forEach((el) => { el.textContent = "Ainda não disponível."; }); return; }
   for (const img of $$("img[data-tmdb]", raiz)) {
     const o = C.O.get(img.dataset.tmdb);
     if (!o || !o.tmdb) continue;
-    agendar(async () => {
-      const info = await tmdbInfo(o);
-      if (!info || !info.p || !img.isConnected) return;
-      img.onload = () => { img.hidden = false; };
-      img.onerror = () => img.remove();
-      img.src = "https://image.tmdb.org/t/p/w342" + info.p;
-    });
+    const c = tmdbCache()[o.id + "|" + LINGUA_TMDB];
+    if (c !== undefined) { if (c && c.p) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + c.p); continue; }
+    agendar(async () => { const info = await tmdbInfo(o); if (info && info.p && img.isConnected) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + info.p); });
   }
   for (const img of $$("img[data-tmdb-fundo]", raiz)) {
     const o = C.O.get(img.dataset.tmdbFundo);
     if (!o || !o.tmdb) continue;
-    agendar(async () => {
-      const info = await tmdbInfo(o);
-      if (!info || !info.b || !img.isConnected) return;
-      img.onload = () => { img.hidden = false; };
-      img.onerror = () => img.remove();
-      img.src = "https://image.tmdb.org/t/p/w1280" + info.b;
-    });
+    agendar(async () => { const info = await tmdbInfo(o); if (info && info.b && img.isConnected) mostrarImg(img, "https://image.tmdb.org/t/p/w1280" + info.b); });
   }
   for (const el of $$("[data-provedores]", raiz)) {
     const o = C.O.get(el.dataset.provedores);
@@ -2743,10 +2738,9 @@ function hidratarImagens(raiz = document) {
     agendar(async () => {
       const info = await tmdbInfo(o);
       if (!info) { el.textContent = "Não achei essa obra no TMDB."; return; }
-      const j = await tmdbGet(`/${o.tmdb.t === "tv" ? "tv" : "movie"}/${info.id}/watch/providers`);
-      const br = j.results && j.results.BR;
-      const grupos = [["flatrate", "Streaming"], ["rent", "Aluguel"], ["buy", "Compra"]];
-      const html = br ? grupos.map(([k, n]) => (br[k] && br[k].length ? `<p><strong>${n}:</strong> ${br[k].map((p) => esc(p.provider_name)).join(", ")}</p>` : "")).join("") : "";
+      const j = await ponte({ acao: "onde", tipo: o.tmdb.t === "tv" ? "tv" : "movie", id: String(info.id), pais: "BR" });
+      const grupos = [["streaming", "Streaming"], ["aluguel", "Aluguel"], ["compra", "Compra"]];
+      const html = grupos.map(([k, n]) => (j && Array.isArray(j[k]) && j[k].length ? `<p><strong>${n}:</strong> ${j[k].map(esc).join(", ")}</p>` : "")).join("");
       el.innerHTML = html || "Sem streaming no Brasil agora.";
     });
   }

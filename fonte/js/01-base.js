@@ -3,7 +3,9 @@
 const NOME_DO_SITE = "Heroteca";            // nome provisório
 const NOME_DO_JOGO = "Heroidle";
 const ENDERECO_DO_SITE = "";                // quando tiver domínio, ex.: "https://heroteca.com.br"
-const TMDB_API_KEY = "";                    // chave grátis do TMDB (v3) ou token de leitura (v4). Vazia = capas desenhadas.
+// Supabase: a chave "anon" é pública por natureza (o que protege os dados são as regras do banco).
+const SUPABASE_URL = "https://sdjuzthrlelhrevgaihz.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkanV6dGhybGVsaHJldmdhaWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0ODc0NzIsImV4cCI6MjExMTA2MzQ3Mn0.aJZitwT6za_ffoRfncICGZC7xiK2haJpAut7i7hUVB0";
 const FUSO = "America/Sao_Paulo";
 const DATA_DE_LANCAMENTO = "2026-11-22";    // dia nº 1 do Heroidle
 const SEMENTE = 20261122;                   // mesma semente do Heroidle avulso: o personagem do dia é o mesmo
