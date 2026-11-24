@@ -191,7 +191,7 @@ function pgObra(id) {
   const med = mediaObra(o.id);
   const breve = emBreve(o);
   const linha = [o.original !== o.titulo ? o.original : "", o.periodo || String(o.ano), o.creditos || ""].filter(Boolean).map(esc).join(" · ");
-  const faixa = `<header class="faixa" style="--c1:${u.cor}">${TMDB.ativo && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
+  const faixa = `<header class="faixa" style="--c1:${u.cor}">${CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
       <div class="chips"><span class="chip">${esc(FORMATO[o.formato].nome)}</span>${uchip(u)}</div>
       <h1 class="h1">${esc(o.titulo)}</h1><p class="faixa-linha">${linha}</p>
       ${breve ? `<p class="nota-com">${o.data ? `Estreia em ${dataLonga(o.data)} · faltam ${plural(diasEntre(HOJE, o.data), "dia", "dias")}` : `Previsto para ${o.ano}`}</p>`
@@ -253,7 +253,7 @@ function ondeVer(o) {
     return `<div class="q bloco"><h2 class="h3">Onde ler no Brasil</h2><p class="mudo">${bigs ? "As HQs da Marvel e da DC saem no Brasil pela Panini, quase sempre em encadernados que juntam várias edições." : "A disponibilidade muda bastante: vale procurar em lojas de quadrinhos e sebos."} As edições brasileiras de cada história ainda vão ser cadastradas.</p></div>`;
   }
   if (emBreve(o)) return "";
-  if (TMDB.ativo && o.tmdb) return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><div data-provedores="${esc(o.id)}" class="mudo">Procurando...</div><p class="mudo mini">Dados de streaming: JustWatch, via TMDB.</p></div>`;
+  if (CAPAS_ONLINE && o.tmdb) return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><div data-provedores="${esc(o.id)}" class="mudo">Procurando...</div><p class="mudo mini">Dados de streaming: JustWatch, via TMDB.</p></div>`;
   return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><p class="mudo">Quando o site estiver no ar com a chave do TMDB, aqui aparecem os streamings do Brasil (dados do JustWatch).</p></div>`;
 }
 function blocoProgresso(o, e) {
@@ -503,7 +503,7 @@ function pgSobre() {
       <p>A ${NOME_DO_SITE} é um diário só de heróis: filmes, séries, desenhos e HQs da Marvel, da DC e de outras editoras, tudo num lugar só. O foco são os personagens: cada versão de cada personagem tem página, nota e lista de aparições.</p>
       <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade é de exemplo e o catálogo ainda é pequeno.</p>
     </div>
-    ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres e dados de streaming do TMDB, com o aviso de crédito.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
-    ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>As capas que você vê aqui são desenhadas pela própria ${NOME_DO_SITE}. Quando o site estiver no ar com a chave do TMDB, os pôsteres oficiais aparecem por cima delas.</p></div>`)}
+    ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres do TMDB e capas do Comic Vine, com os avisos de crédito que eles pedem.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
+    ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>Os pôsteres de filmes, séries e desenhos vêm do <a href="https://www.themoviedb.org/">TMDB</a>, e as capas de HQ vêm do <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Cada HQ usa a capa da primeira edição da história. Onde não existe capa, a ${NOME_DO_SITE} desenha uma.</p></div>`)}
     ${secao("Seus dados", `<div class="q prosa"><p id="armazem"></p><p>Em Perfil, você pode baixar um backup, importar um backup ou apagar tudo.</p></div>`)}`;
 }

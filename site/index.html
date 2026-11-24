@@ -742,7 +742,7 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.45; }
   <div class="rodape-in">
     <p><strong>Heroteca (beta)</strong> · um diário de fã para fãs de heróis · <a href="#sobre">Sobre o beta</a> · <a href="#listas">Listas</a> · <a href="#ranking">Ranking</a></p>
     <p id="armazem-rodape"></p>
-    <p>Pôsteres e dados de streaming: <a href="https://www.themoviedb.org/">TMDB</a> e JustWatch. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Quando não há pôster, aparece uma capa desenhada pela Heroteca.</p>
+    <p>Pôsteres de filmes, séries e desenhos e dados de streaming: <a href="https://www.themoviedb.org/">TMDB</a> e JustWatch. Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB. Capas de HQ: <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Quando não há capa, aparece uma desenhada pela Heroteca.</p>
     <p>Marvel, DC e os demais personagens, nomes e marcas pertencem aos seus donos. Este é um projeto de fã, sem ligação com essas empresas.</p>
   </div>
 </footer>
@@ -1431,7 +1431,9 @@ function capa(o, { status = true } = {}) {
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
   const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
-  const img = TMDB.ativo && o.tmdb ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">` : "";
+  const img = !CAPAS_ONLINE ? "" : o.tmdb
+    ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
+    : `<img class="capa-img" data-hq="${esc(o.id)}" alt="" loading="lazy">`;
   return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor};--b:${BURSTS[(h >>> 4) % BURSTS.length]}">`
     + `<span class="capa-fundo"></span>`
     + `<span class="capa-topo"><span class="capa-selo">${esc(FRANQ_CURTA[o.franquia] || o.franquia)}</span><span class="capa-ano">${esc(o.ano)}</span></span>`
@@ -1750,7 +1752,7 @@ function pgObra(id) {
   const med = mediaObra(o.id);
   const breve = emBreve(o);
   const linha = [o.original !== o.titulo ? o.original : "", o.periodo || String(o.ano), o.creditos || ""].filter(Boolean).map(esc).join(" · ");
-  const faixa = `<header class="faixa" style="--c1:${u.cor}">${TMDB.ativo && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
+  const faixa = `<header class="faixa" style="--c1:${u.cor}">${CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
       <div class="chips"><span class="chip">${esc(FORMATO[o.formato].nome)}</span>${uchip(u)}</div>
       <h1 class="h1">${esc(o.titulo)}</h1><p class="faixa-linha">${linha}</p>
       ${breve ? `<p class="nota-com">${o.data ? `Estreia em ${dataLonga(o.data)} · faltam ${plural(diasEntre(HOJE, o.data), "dia", "dias")}` : `Previsto para ${o.ano}`}</p>`
@@ -1812,7 +1814,7 @@ function ondeVer(o) {
     return `<div class="q bloco"><h2 class="h3">Onde ler no Brasil</h2><p class="mudo">${bigs ? "As HQs da Marvel e da DC saem no Brasil pela Panini, quase sempre em encadernados que juntam várias edições." : "A disponibilidade muda bastante: vale procurar em lojas de quadrinhos e sebos."} As edições brasileiras de cada história ainda vão ser cadastradas.</p></div>`;
   }
   if (emBreve(o)) return "";
-  if (TMDB.ativo && o.tmdb) return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><div data-provedores="${esc(o.id)}" class="mudo">Procurando...</div><p class="mudo mini">Dados de streaming: JustWatch, via TMDB.</p></div>`;
+  if (CAPAS_ONLINE && o.tmdb) return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><div data-provedores="${esc(o.id)}" class="mudo">Procurando...</div><p class="mudo mini">Dados de streaming: JustWatch, via TMDB.</p></div>`;
   return `<div class="q bloco"><h2 class="h3">Onde assistir no Brasil</h2><p class="mudo">Quando o site estiver no ar com a chave do TMDB, aqui aparecem os streamings do Brasil (dados do JustWatch).</p></div>`;
 }
 function blocoProgresso(o, e) {
@@ -2062,8 +2064,8 @@ function pgSobre() {
       <p>A ${NOME_DO_SITE} é um diário só de heróis: filmes, séries, desenhos e HQs da Marvel, da DC e de outras editoras, tudo num lugar só. O foco são os personagens: cada versão de cada personagem tem página, nota e lista de aparições.</p>
       <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade é de exemplo e o catálogo ainda é pequeno.</p>
     </div>
-    ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres e dados de streaming do TMDB, com o aviso de crédito.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
-    ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>As capas que você vê aqui são desenhadas pela própria ${NOME_DO_SITE}. Quando o site estiver no ar com a chave do TMDB, os pôsteres oficiais aparecem por cima delas.</p></div>`)}
+    ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres do TMDB e capas do Comic Vine, com os avisos de crédito que eles pedem.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
+    ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>Os pôsteres de filmes, séries e desenhos vêm do <a href="https://www.themoviedb.org/">TMDB</a>, e as capas de HQ vêm do <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Cada HQ usa a capa da primeira edição da história. Onde não existe capa, a ${NOME_DO_SITE} desenha uma.</p></div>`)}
     ${secao("Seus dados", `<div class="q prosa"><p id="armazem"></p><p>Em Perfil, você pode baixar um backup, importar um backup ou apagar tudo.</p></div>`)}`;
 }
 
@@ -2680,11 +2682,15 @@ function atualizarContagem() {
   $$("[data-contagem]").forEach((el) => { el.textContent = t; });
 }
 
-// ================= Pôsteres do TMDB =================
-// O site pergunta à ponte "tmdb" no Supabase, que guarda a chave do TMDB em segredo.
+// ================= Capas =================
+// Filmes, séries e desenhos: pôster do TMDB, pela ponte "tmdb" no Supabase (a chave fica lá, em segredo).
+// HQs: capa do Comic Vine, guardada na tabela "capas_hq" do Supabase; o site só lê de lá.
 // Dentro do Claude (artefato) não dá para carregar nada de fora, então ficam as capas desenhadas.
-const TMDB = { ativo: FORA_DO_CLAUDE, cache: null, fila: [], rodando: 0, falhou: false };
+const CAPAS_ONLINE = FORA_DO_CLAUDE;
+const TMDB = { ativo: CAPAS_ONLINE, cache: null, fila: [], rodando: 0, falhou: false };
 const LINGUA_TMDB = "pt-BR";
+const CABECALHO_SUPABASE = { Authorization: "Bearer " + SUPABASE_ANON, apikey: SUPABASE_ANON };
+
 function tmdbCache() {
   if (!TMDB.cache) { try { TMDB.cache = JSON.parse(localStorage.getItem("heroteca-tmdb-v2")) || {}; } catch (e) { TMDB.cache = {}; } }
   return TMDB.cache;
@@ -2693,7 +2699,7 @@ function tmdbGuardar() { try { localStorage.setItem("heroteca-tmdb-v2", JSON.str
 async function ponte(params) {
   const u = new URL(SUPABASE_URL + "/functions/v1/tmdb");
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  const r = await fetch(u, { headers: { Authorization: "Bearer " + SUPABASE_ANON, apikey: SUPABASE_ANON } });
+  const r = await fetch(u, { headers: CABECALHO_SUPABASE });
   if (r.status === 503) { TMDB.falhou = true; throw new Error("sem chave"); }
   if (!r.ok) throw new Error("ponte " + r.status);
   return r.json();
@@ -2703,17 +2709,42 @@ async function tmdbInfo(o) {
   const k = o.id + "|" + LINGUA_TMDB;
   if (c[k] !== undefined) return c[k];
   const j = await ponte({ acao: "busca", tipo: o.tmdb.t === "tv" ? "tv" : "movie", q: o.tmdb.q, y: String(o.tmdb.y), lang: LINGUA_TMDB });
-  const info = j && j.id ? { id: Number(j.id), p: /^\/[\w.-]+$/.test(j.p || "") ? j.p : "", b: /^\/[\w.-]+$/.test(j.b || "") ? j.b : "" } : null;
+  const info = j && j.id ? { id: Number(j.id), p: caminhoCartaz(j.p), b: caminhoCartaz(j.b) } : null;
   c[k] = info;
   tmdbGuardar();
   return info;
 }
+const caminhoCartaz = (s) => (/^\/[\w.-]+$/.test(s || "") ? s : "");
+
+// ---------- Capas de HQ: uma consulta só, guardada por um dia ----------
+let capasHQ = null;
+function capasHQAgora() {
+  if (capasHQ) return capasHQ;
+  capasHQ = (async () => {
+    try {
+      const guardado = JSON.parse(localStorage.getItem("heroteca-hq-v1"));
+      if (guardado && Date.now() - guardado.t < 86400000 && guardado.m) return guardado.m;
+    } catch (e) { /* sem cache */ }
+    const u = new URL(SUPABASE_URL + "/rest/v1/capas_hq");
+    u.searchParams.set("select", "obra,url");
+    const r = await fetch(u, { headers: CABECALHO_SUPABASE });
+    if (!r.ok) throw new Error("capas " + r.status);
+    const m = {};
+    for (const x of await r.json()) {
+      if (typeof x.obra === "string" && /^https:\/\/[a-z0-9.-]*gamespot\.com\//.test(x.url || "")) m[x.obra] = x.url;
+    }
+    try { localStorage.setItem("heroteca-hq-v1", JSON.stringify({ t: Date.now(), m })); } catch (e) { /* sem cache */ }
+    return m;
+  })().catch(() => ({}));
+  return capasHQ;
+}
+
 function agendar(fn) { TMDB.fila.push(fn); bombear(); }
 function bombear() {
-  while (TMDB.rodando < 4 && TMDB.fila.length && !TMDB.falhou) {
+  while (TMDB.rodando < 4 && TMDB.fila.length) {
     const fn = TMDB.fila.shift();
     TMDB.rodando++;
-    fn().catch(() => { /* sem pôster: fica a capa desenhada */ }).finally(() => { TMDB.rodando--; bombear(); });
+    fn().catch(() => { /* sem capa: fica a desenhada */ }).finally(() => { TMDB.rodando--; bombear(); });
   }
 }
 function mostrarImg(img, url) {
@@ -2722,7 +2753,13 @@ function mostrarImg(img, url) {
   img.src = url;
 }
 function hidratarImagens(raiz = document) {
-  if (!TMDB.ativo || !raiz) return;
+  if (!CAPAS_ONLINE || !raiz) return;
+  const hqs = $$("img[data-hq]", raiz);
+  if (hqs.length) {
+    capasHQAgora().then((m) => {
+      for (const img of hqs) { const u = m[img.dataset.hq]; if (u && img.isConnected) mostrarImg(img, u); }
+    });
+  }
   if (TMDB.falhou) { $$("[data-provedores]", raiz).forEach((el) => { el.textContent = "Ainda não disponível."; }); return; }
   for (const img of $$("img[data-tmdb]", raiz)) {
     const o = C.O.get(img.dataset.tmdb);
