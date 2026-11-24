@@ -705,3 +705,122 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
 /* ---------- listas longas ---------- */
 .mais-linha { display: flex; justify-content: center; margin: 20px 0 4px; }
 .carregando-cat { color: var(--muted); text-align: center; padding: 22px 0; font-size: .94rem; }
+
+/* ================= Página do personagem: guia grudado ================= */
+.pers { display: grid; gap: 22px; margin-top: 18px; }
+.guia-puxador { display: none; }
+.pers-corpo { min-width: 0; }
+
+@media (min-width: 980px) {
+  .pers { grid-template-columns: 300px minmax(0, 1fr); align-items: start; }
+  .pers[data-lado="dir"] { grid-template-columns: minmax(0, 1fr) 300px; }
+  .pers[data-lado="dir"] .guia { order: 2; }
+  .guia { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; scrollbar-width: thin; }
+}
+
+.guia {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px; display: block;
+}
+.guia-rolo { display: grid; gap: 10px; }
+.guia-retrato {
+  width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r-s); overflow: hidden;
+  background: linear-gradient(150deg, var(--c), color-mix(in srgb, var(--c) 35%, #0b1020));
+  display: grid; place-items: center; border: 1px solid var(--line);
+}
+.guia-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.guia-iniciais { font-family: var(--f-display); font-size: 2.6rem; color: #fff; opacity: .9; }
+.guia-nome { font-size: clamp(1.3rem, 4.4vw, 1.7rem); margin: 2px 0 0; line-height: 1.05; }
+.guia-sub { color: var(--muted); margin: 0; font-size: .92rem; }
+.guia-numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-top: 2px; }
+.guia-numeros div { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-s); padding: 8px 4px; }
+.guia-numeros b { display: block; font-family: var(--f-display); font-size: 1.2rem; color: var(--ouro); }
+.guia-numeros span { display: block; font-size: .72rem; color: var(--muted); }
+.guia-linha { margin: 0; font-size: .86rem; }
+.guia-resumo { margin: 4px 0 0; font-size: .9rem; color: var(--ink); opacity: .9; }
+.guia-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.guia-lado {
+  margin-top: 2px; width: 100%; background: none; border: 1px dashed var(--line-forte);
+  color: var(--muted); border-radius: var(--r-s); padding: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: .84rem;
+}
+.guia-lado:hover { color: var(--ink); border-color: var(--ouro); }
+
+/* ---------- a chave protagonista / participações / versões ---------- */
+.chave { display: flex; gap: 6px; margin-bottom: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+.chave::-webkit-scrollbar { display: none; }
+.chave-bt {
+  flex: 1 0 auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .88rem;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+}
+.chave-bt[aria-selected="true"] { background: var(--ouro); color: var(--ink-escuro); font-weight: 600; }
+
+/* ---------- lista de aparições ---------- */
+.lista-ap { display: grid; gap: 8px; }
+.ap--linha {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-s); padding: 8px 12px 8px 8px;
+  text-decoration: none; color: inherit;
+}
+.ap--linha:hover { border-color: var(--line-forte); background: var(--panel-2); }
+.ap-capa { display: block; }
+.ap-txt { display: grid; gap: 2px; min-width: 0; }
+.ap--linha .ap-t { font-weight: 600; font-size: .96rem; }
+.ap--linha .ap-m { color: var(--muted); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-fim { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ap-st { font-size: .7rem; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.ap-st.st-quero { color: var(--st-quero); } .ap-st.st-vendo { color: var(--st-vendo); }
+.ap-st.st-terminei { color: var(--st-terminei); } .ap-st.st-abandonei { color: var(--st-abandonei); }
+
+/* ---------- rosto da versão ---------- */
+.versao-foto { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; border: 2px solid var(--c); flex: 0 0 auto; }
+.versao-foto img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.versao-cab { display: flex; align-items: center; gap: 8px; }
+
+/* ================= No celular o guia vira gaveta ================= */
+/* Fechada, mostra o rosto, o nome e os dois botões. Aberta, mostra tudo. */
+@media (max-width: 979px) {
+  .pers { position: relative; padding-bottom: 160px; }
+  .guia {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding: 0 14px 10px;
+    max-height: 84vh; box-shadow: 0 -14px 40px rgba(0, 0, 0, .55);
+    transform: translateY(calc(100% - 152px)); transition: transform .26s cubic-bezier(.2, .8, .2, 1);
+    overflow: hidden;
+  }
+  .guia.aberta { transform: translateY(0); }
+  .guia.arrastando { transition: none; }
+  .guia-puxador {
+    display: block; width: 100%; height: 26px; border: 0; background: none; cursor: grab;
+    position: relative; touch-action: none; padding: 0;
+  }
+  .guia-puxador::before {
+    content: ""; position: absolute; left: 50%; top: 10px; width: 44px; height: 4px;
+    transform: translateX(-50%); background: var(--line-forte); border-radius: 999px;
+  }
+  .guia-rolo {
+    max-height: calc(84vh - 40px); overflow: auto; overscroll-behavior: contain;
+    grid-template-columns: 70px minmax(0, 1fr); gap: 2px 12px; align-content: start;
+  }
+  .guia-retrato { grid-row: span 2; width: 70px; aspect-ratio: 3 / 4; align-self: start; }
+  .guia-iniciais { font-size: 1.5rem; }
+  .guia-nome { grid-column: 2; align-self: end; font-size: 1.3rem; }
+  .guia-sub { grid-column: 2; align-self: start; }
+  .guia-acoes { grid-column: 1 / -1; margin-top: 8px; }
+  .guia-acoes .bt { flex: 1; justify-content: center; }
+  .guia-rolo > .chips, .guia-numeros, .guia-rolo > .barra, .guia-linha, .guia-resumo { grid-column: 1 / -1; }
+  .guia-rolo > .chips { margin-top: 10px; }
+  .guia-lado { display: none; }
+  .ap--linha { grid-template-columns: 46px minmax(0, 1fr); padding: 8px; }
+  .ap-fim { grid-column: 2; flex-direction: row; align-items: center; }
+}
+
+/* ---------- elenco vindo do TMDB ---------- */
+.ecard--tmdb { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; align-items: center; }
+.erosto { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; border: 1px solid var(--line-forte); display: block; }
+.erosto img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.erosto--vazio {
+  display: grid; place-items: center; background: var(--panel-2);
+  font-family: var(--f-display); font-size: .9rem; color: var(--muted);
+}
+.ecard--tmdb .ecard-n, .ecard--tmdb .ecard-a { grid-column: 2; }

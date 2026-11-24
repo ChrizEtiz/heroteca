@@ -1,6 +1,6 @@
 // ================= Catálogo =================
 const C = {
-  U: new Map(), P: new Map(), O: new Map(), L: [],
+  U: new Map(), P: new Map(), O: new Map(), L: [], porTmdb: new Map(),
   obras: [], personagens: [], universos: [],
   versoes: new Map(), aparicoes: new Map(), pessoas: new Map(),
   jogo: [], jogoPorId: new Map(),
@@ -52,10 +52,12 @@ function indexar(regs) {
   C.personagens = [...C.P.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   C.obras = [...C.O.values()].filter((o) => C.U.has(o.universo));
   // As obras vindas do TMDB chegam enxutas: completa o que as páginas esperam.
+  C.porTmdb.clear();
   for (const o of C.obras) {
     o.franquia = C.U.get(o.universo).franquia;
     if (!o.original) o.original = o.titulo;
     if (!o.elenco) o.elenco = [];
+    if (o.tmdb && o.tmdb.i) C.porTmdb.set((o.tmdb.t || "movie") + ":" + o.tmdb.i, o);
   }
   for (const u of C.universos) { u.cor = corValida(u.cor); u.busca = normalizar(`${u.nome} ${u.franquia} ${u.midia}`); u.obras = []; }
   for (const p of C.personagens) p.busca = [p.nome, p.identidade, ...(p.apelidos || [])].filter(Boolean).map(normalizar);
@@ -96,8 +98,8 @@ function indexar(regs) {
 const emBreve = (o) => o.status === "em-breve" && (!o.data || o.data > HOJE);
 const versoesDe = (pid) => [...C.versoes.values()].filter((v) => v.p === pid).sort((a, b) => a.ano - b.ano);
 function obrasDoPersonagem(pid) {
-  const ids = [...new Set((C.aparicoes.get(pid) || []).map((a) => a.obra))];
-  return ids.map((id) => C.O.get(id)).sort((a, b) => a.ano - b.ano);
+  const ids = [...new Set(aparicoesCompletas(pid).map((a) => a.obra))];
+  return ids.map((id) => C.O.get(id)).filter(Boolean).sort((a, b) => a.ano - b.ano);
 }
 
 // ================= Perfis de exemplo (comunidade do beta) =================

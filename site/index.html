@@ -718,6 +718,125 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
 .mais-linha { display: flex; justify-content: center; margin: 20px 0 4px; }
 .carregando-cat { color: var(--muted); text-align: center; padding: 22px 0; font-size: .94rem; }
 
+/* ================= Página do personagem: guia grudado ================= */
+.pers { display: grid; gap: 22px; margin-top: 18px; }
+.guia-puxador { display: none; }
+.pers-corpo { min-width: 0; }
+
+@media (min-width: 980px) {
+  .pers { grid-template-columns: 300px minmax(0, 1fr); align-items: start; }
+  .pers[data-lado="dir"] { grid-template-columns: minmax(0, 1fr) 300px; }
+  .pers[data-lado="dir"] .guia { order: 2; }
+  .guia { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; scrollbar-width: thin; }
+}
+
+.guia {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px; display: block;
+}
+.guia-rolo { display: grid; gap: 10px; }
+.guia-retrato {
+  width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r-s); overflow: hidden;
+  background: linear-gradient(150deg, var(--c), color-mix(in srgb, var(--c) 35%, #0b1020));
+  display: grid; place-items: center; border: 1px solid var(--line);
+}
+.guia-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.guia-iniciais { font-family: var(--f-display); font-size: 2.6rem; color: #fff; opacity: .9; }
+.guia-nome { font-size: clamp(1.3rem, 4.4vw, 1.7rem); margin: 2px 0 0; line-height: 1.05; }
+.guia-sub { color: var(--muted); margin: 0; font-size: .92rem; }
+.guia-numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-top: 2px; }
+.guia-numeros div { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-s); padding: 8px 4px; }
+.guia-numeros b { display: block; font-family: var(--f-display); font-size: 1.2rem; color: var(--ouro); }
+.guia-numeros span { display: block; font-size: .72rem; color: var(--muted); }
+.guia-linha { margin: 0; font-size: .86rem; }
+.guia-resumo { margin: 4px 0 0; font-size: .9rem; color: var(--ink); opacity: .9; }
+.guia-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.guia-lado {
+  margin-top: 2px; width: 100%; background: none; border: 1px dashed var(--line-forte);
+  color: var(--muted); border-radius: var(--r-s); padding: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: .84rem;
+}
+.guia-lado:hover { color: var(--ink); border-color: var(--ouro); }
+
+/* ---------- a chave protagonista / participações / versões ---------- */
+.chave { display: flex; gap: 6px; margin-bottom: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px; overflow-x: auto; scrollbar-width: none; }
+.chave::-webkit-scrollbar { display: none; }
+.chave-bt {
+  flex: 1 0 auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: .88rem;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+}
+.chave-bt[aria-selected="true"] { background: var(--ouro); color: var(--ink-escuro); font-weight: 600; }
+
+/* ---------- lista de aparições ---------- */
+.lista-ap { display: grid; gap: 8px; }
+.ap--linha {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-s); padding: 8px 12px 8px 8px;
+  text-decoration: none; color: inherit;
+}
+.ap--linha:hover { border-color: var(--line-forte); background: var(--panel-2); }
+.ap-capa { display: block; }
+.ap-txt { display: grid; gap: 2px; min-width: 0; }
+.ap--linha .ap-t { font-weight: 600; font-size: .96rem; }
+.ap--linha .ap-m { color: var(--muted); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-fim { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ap-st { font-size: .7rem; padding: 2px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.ap-st.st-quero { color: var(--st-quero); } .ap-st.st-vendo { color: var(--st-vendo); }
+.ap-st.st-terminei { color: var(--st-terminei); } .ap-st.st-abandonei { color: var(--st-abandonei); }
+
+/* ---------- rosto da versão ---------- */
+.versao-foto { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; border: 2px solid var(--c); flex: 0 0 auto; }
+.versao-foto img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.versao-cab { display: flex; align-items: center; gap: 8px; }
+
+/* ================= No celular o guia vira gaveta ================= */
+/* Fechada, mostra o rosto, o nome e os dois botões. Aberta, mostra tudo. */
+@media (max-width: 979px) {
+  .pers { position: relative; padding-bottom: 160px; }
+  .guia {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding: 0 14px 10px;
+    max-height: 84vh; box-shadow: 0 -14px 40px rgba(0, 0, 0, .55);
+    transform: translateY(calc(100% - 152px)); transition: transform .26s cubic-bezier(.2, .8, .2, 1);
+    overflow: hidden;
+  }
+  .guia.aberta { transform: translateY(0); }
+  .guia.arrastando { transition: none; }
+  .guia-puxador {
+    display: block; width: 100%; height: 26px; border: 0; background: none; cursor: grab;
+    position: relative; touch-action: none; padding: 0;
+  }
+  .guia-puxador::before {
+    content: ""; position: absolute; left: 50%; top: 10px; width: 44px; height: 4px;
+    transform: translateX(-50%); background: var(--line-forte); border-radius: 999px;
+  }
+  .guia-rolo {
+    max-height: calc(84vh - 40px); overflow: auto; overscroll-behavior: contain;
+    grid-template-columns: 70px minmax(0, 1fr); gap: 2px 12px; align-content: start;
+  }
+  .guia-retrato { grid-row: span 2; width: 70px; aspect-ratio: 3 / 4; align-self: start; }
+  .guia-iniciais { font-size: 1.5rem; }
+  .guia-nome { grid-column: 2; align-self: end; font-size: 1.3rem; }
+  .guia-sub { grid-column: 2; align-self: start; }
+  .guia-acoes { grid-column: 1 / -1; margin-top: 8px; }
+  .guia-acoes .bt { flex: 1; justify-content: center; }
+  .guia-rolo > .chips, .guia-numeros, .guia-rolo > .barra, .guia-linha, .guia-resumo { grid-column: 1 / -1; }
+  .guia-rolo > .chips { margin-top: 10px; }
+  .guia-lado { display: none; }
+  .ap--linha { grid-template-columns: 46px minmax(0, 1fr); padding: 8px; }
+  .ap-fim { grid-column: 2; flex-direction: row; align-items: center; }
+}
+
+/* ---------- elenco vindo do TMDB ---------- */
+.ecard--tmdb { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; align-items: center; }
+.erosto { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; border: 1px solid var(--line-forte); display: block; }
+.erosto img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.erosto--vazio {
+  display: grid; place-items: center; background: var(--panel-2);
+  font-family: var(--f-display); font-size: .9rem; color: var(--muted);
+}
+.ecard--tmdb .ecard-n, .ecard--tmdb .ecard-a { grid-column: 2; }
+
 </style>
 </head>
 <body>
@@ -882,6 +1001,7 @@ const ICONES = {
   estrela: "M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z",
   spoiler: "M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.6 6.6C3.9 8.4 2 12 2 12s3.6 6 10 6c1.6 0 3-.3 4.3-.9M9.9 9.9a3 3 0 0 0 4.2 4.2",
   upload: "M12 21V9M7 14l5-5 5 5M4 4h16",
+  troca: "M7 7h11l-3-3M17 17H6l3 3",
 };
 const ic = (nome, extra = "") => `<svg class="ic ${extra}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONES[nome]}"/></svg>`;
 const SVG_ESTRELA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="eo" d="${ICONES.estrela}"/><path class="ef" d="${ICONES.estrela}"/></svg>`;
@@ -907,7 +1027,7 @@ function nomeStatus(s, o) {
 
 // ================= Catálogo =================
 const C = {
-  U: new Map(), P: new Map(), O: new Map(), L: [],
+  U: new Map(), P: new Map(), O: new Map(), L: [], porTmdb: new Map(),
   obras: [], personagens: [], universos: [],
   versoes: new Map(), aparicoes: new Map(), pessoas: new Map(),
   jogo: [], jogoPorId: new Map(),
@@ -959,10 +1079,12 @@ function indexar(regs) {
   C.personagens = [...C.P.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   C.obras = [...C.O.values()].filter((o) => C.U.has(o.universo));
   // As obras vindas do TMDB chegam enxutas: completa o que as páginas esperam.
+  C.porTmdb.clear();
   for (const o of C.obras) {
     o.franquia = C.U.get(o.universo).franquia;
     if (!o.original) o.original = o.titulo;
     if (!o.elenco) o.elenco = [];
+    if (o.tmdb && o.tmdb.i) C.porTmdb.set((o.tmdb.t || "movie") + ":" + o.tmdb.i, o);
   }
   for (const u of C.universos) { u.cor = corValida(u.cor); u.busca = normalizar(`${u.nome} ${u.franquia} ${u.midia}`); u.obras = []; }
   for (const p of C.personagens) p.busca = [p.nome, p.identidade, ...(p.apelidos || [])].filter(Boolean).map(normalizar);
@@ -1003,8 +1125,8 @@ function indexar(regs) {
 const emBreve = (o) => o.status === "em-breve" && (!o.data || o.data > HOJE);
 const versoesDe = (pid) => [...C.versoes.values()].filter((v) => v.p === pid).sort((a, b) => a.ano - b.ano);
 function obrasDoPersonagem(pid) {
-  const ids = [...new Set((C.aparicoes.get(pid) || []).map((a) => a.obra))];
-  return ids.map((id) => C.O.get(id)).sort((a, b) => a.ano - b.ano);
+  const ids = [...new Set(aparicoesCompletas(pid).map((a) => a.obra))];
+  return ids.map((id) => C.O.get(id)).filter(Boolean).sort((a, b) => a.ano - b.ano);
 }
 
 // ================= Perfis de exemplo (comunidade do beta) =================
@@ -1593,10 +1715,15 @@ function pctObra(o, e) {
 const UI = {
   explorar: { q: "", formato: "todos", franquia: "todas", ordem: "recentes", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
+  personagem: { aba: "protagonista" },
   diario: { ano: "todos", formato: "todos", tag: "" },
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+
+// De que lado da tela fica o guia do personagem. Fica guardado no aparelho.
+let LADO_GUIA = "esq";
+try { if (localStorage.getItem("heroteca-lado") === "dir") LADO_GUIA = "dir"; } catch (e) { /* sem cache */ }
 
 // Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
 const POR_VEZ = 60;
@@ -1820,7 +1947,8 @@ function pgObra(id) {
       ${o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : ""}
       ${blocoProgresso(o, e)}
       ${o.elenco.length ? `<section class="q bloco"><h2 class="h2">${o.formato === "hq" ? "Personagens" : "Personagens e elenco"}</h2><div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>
-        ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>` : ""}
+        ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>`
+        : o.tmdb && o.tmdb.i ? `<section class="q bloco"><h2 class="h2">Elenco</h2><div class="elenco" data-elenco="${esc(o.id)}"><p class="mudo">Buscando o elenco...</p></div></section>` : ""}
       ${o.elenco.length && !breve ? blocoNotasPersonagens(o) : ""}
       <section class="bloco"><div class="sec-h" style="margin:0"><h2 class="leg">Resenhas</h2>${breve ? "" : `<button class="bt bt--mini" data-acao="log-abrir" data-obra="${esc(o.id)}">${ic("lapis")}Escrever a minha</button>`}</div>
         ${resenhas.length ? `<p class="sec-nota" style="margin:0">${NOTA_EXEMPLOS}</p><div class="resenhas">${resenhas.map((l) => resenha(l)).join("")}</div>` : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`}</section>
@@ -1905,24 +2033,90 @@ function pgPersonagem(id) {
   const p = C.P.get(id);
   if (!p) return naoAchei();
   PAG.titulo = p.nome;
-  const vs = versoesDe(id);
+  const cor = corValida(COR_FRANQ[p.franquia]);
   const g = progressoPersonagem(id);
   const fav = R.favoritos.personagens.includes(id);
-  const cor = corValida(COR_FRANQ[p.franquia]);
-  const linha = [p.identidade, p.primeira ? "Primeira aparição: " + p.primeira : "Estreia: " + p.estreia].filter(Boolean).map(esc).join(" · ");
-  return `<header class="faixa" style="--c1:${cor}"><div class="faixa-in faixa-in--sem-capa"><span class="emb-w">${emblema(p, "emb--xg")}</span><div class="faixa-txt">
-      <div class="chips"><span class="chip">${esc(p.franquia)}</span>${p.jogo ? `<a class="chip" href="#jogo">${ic("jogo")}Está no ${NOME_DO_JOGO}</a>` : ""}</div>
-      <h1 class="h1">${esc(p.nome)}</h1><p class="faixa-linha">${linha}</p></div></div></header>
-    <div class="acoes" style="margin-top:18px"><button class="bt${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Nos seus 4 favoritos" : "Pôr nos 4 favoritos"}</button>
-      <button class="bt" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar meu progresso</button></div>
-    <div class="grid2" style="margin-top:20px">
-      <section class="q bloco"><div class="sec-h" style="margin:0"><h2 class="h2">Seu progresso</h2><span class="h2 num">${g.pct}%</span></div>${barra(g.pct)}
-        <p class="mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")} com esse personagem, contando participações.</p></section>
-      ${p.resumo ? `<section class="q bloco"><h2 class="h2">Quem é</h2><p>${esc(p.resumo)}</p></section>` : ""}
-    </div>
-    ${secao("Versões", `<div class="versoes">${vs.map(cardVersao).join("")}</div>`, { nota: "Cada universo tem a sua versão, com nota própria. Você só avalia versões de obras que viu ou leu." })}
-    ${p.jogo ? secao(`Ficha no ${NOME_DO_JOGO}`, fichaJogo(p.jogo)) : ""}`;
+  const vs = versoesDe(id);
+  const carregando = !elencoCarregado(id);
+
+  // ---------- o guia que fica grudado na tela ----------
+  const arte = fotoDe(id);
+  const guia = `<aside class="guia" id="guia">
+    <button class="guia-puxador" type="button" aria-label="Abrir ou fechar o guia" aria-expanded="false"></button>
+    <div class="guia-rolo">
+      <div class="guia-retrato" style="--c:${cor}">${arte
+        ? `<img src="${esc(arte)}" alt="" loading="lazy">`
+        : `<span class="guia-iniciais">${esc(iniciais(p.nome))}</span>`}</div>
+      <h1 class="h1 guia-nome">${esc(p.nome)}</h1>
+      ${p.identidade ? `<p class="guia-sub">${esc(p.identidade)}</p>` : ""}
+      <div class="guia-acoes">
+        <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Favorito" : "Favoritar"}</button>
+        <button class="bt bt--mini" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar</button>
+      </div>
+      <div class="chips"><span class="chip">${esc(p.franquia)}</span>${p.jogo ? `<a class="chip" href="#jogo">${ic("jogo")}${NOME_DO_JOGO}</a>` : ""}</div>
+      <div class="guia-numeros">
+        <div><b>${g.total}</b><span>${g.total === 1 ? "obra" : "obras"}</span></div>
+        <div><b>${vs.length}</b><span>${vs.length === 1 ? "versão" : "versões"}</span></div>
+        <div><b>${g.pct}%</b><span>visto</span></div>
+      </div>
+      ${barra(g.pct, "barra--fina")}
+      <p class="guia-linha mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")}.</p>
+      ${p.primeira || p.estreia ? `<p class="guia-linha mudo">${p.primeira ? "Primeira aparição: " + esc(p.primeira) : "Estreia: " + esc(p.estreia)}</p>` : ""}
+      ${p.resumo ? `<p class="guia-resumo">${esc(p.resumo)}</p>` : ""}
+      <button class="guia-lado" data-acao="lado">${ic("troca")}Guia ${LADO_GUIA === "esq" ? "à direita" : "à esquerda"}</button>
+    </div></aside>`;
+
+  // ---------- as obras, separadas por papel ----------
+  const aps = aparicoesCompletas(id);
+  const porObra = new Map();
+  for (const a of aps) {
+    const o = C.O.get(a.obra);
+    if (!o) continue;
+    const ja = porObra.get(a.obra);
+    if (!ja || ORDEM_PAPEL[a.papel] < ORDEM_PAPEL[ja.papel]) porObra.set(a.obra, a);
+  }
+  const todas = [...porObra.values()].map((a) => ({ a, o: C.O.get(a.obra) }))
+    .sort((x, y) => y.o.ano - x.o.ano || x.o.titulo.localeCompare(y.o.titulo, "pt-BR"));
+  const protagoniza = todas.filter((x) => x.a.papel === "protagonista");
+  const participa = todas.filter((x) => x.a.papel !== "protagonista");
+
+  const abas = [["protagonista", `Protagonista (${protagoniza.length})`], ["participacao", `Participações (${participa.length})`], ["versoes", `Versões (${vs.length})`]];
+  const atual = abas.some(([k]) => k === UI.personagem.aba) ? UI.personagem.aba : "protagonista";
+  const chave = `<div class="chave" role="tablist">${abas.map(([k, t]) =>
+    `<button class="chave-bt" role="tab" aria-selected="${atual === k}" data-acao="filtro" data-k="personagem.aba" data-v="${k}">${esc(t)}</button>`).join("")}</div>`;
+
+  let lista;
+  if (atual === "versoes") {
+    lista = vs.length ? `<div class="versoes">${vs.map(cardVersao).join("")}</div>`
+      : `<p class="mudo">Nenhuma versão com nota ainda.</p>`;
+  } else {
+    const itens = atual === "protagonista" ? protagoniza : participa;
+    lista = itens.length ? `<div class="lista-ap">${itens.map(({ a, o }) => itemAparicao(o, a)).join("")}</div>`
+      : `<p class="mudo">${atual === "protagonista" ? `Nenhuma obra com ${esc(p.nome)} no papel principal.` : `Só aparições principais por enquanto.`}</p>`;
+  }
+
+  return `<div class="pers" data-lado="${esc(LADO_GUIA)}">${guia}
+    <div class="pers-corpo">${chave}${lista}
+      ${carregando ? `<p class="carregando-cat">Buscando o resto das aparições...</p>` : ""}
+    </div></div>`;
 }
+
+// Uma linha da lista de aparições: capa, título, papel e quem interpretou.
+function itemAparicao(o, a) {
+  const u = C.U.get(o.universo);
+  const e = estObra(o.id) || {};
+  const quem = a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "";
+  return `<a class="ap ap--linha" href="#obra-${esc(o.id)}">
+    <span class="ap-capa">${capa(o)}</span>
+    <span class="ap-txt">
+      <span class="ap-t">${esc(o.titulo)}</span>
+      <span class="ap-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].nome)} · ${esc(u.nome)}</span>
+      ${quem ? `<span class="ap-m">${esc(quem)}</span>` : ""}
+    </span>
+    <span class="ap-fim">${papelChip(a.papel)}${e.status ? `<span class="ap-st st-${esc(e.status)}">${esc(nomeStatus(e.status, o))}</span>` : ""}</span>
+  </a>`;
+}
+
 function cardVersao(v) {
   const u = C.U.get(v.u), p = C.P.get(v.p);
   const med = mediaVersao(v.chave);
@@ -1931,7 +2125,8 @@ function cardVersao(v) {
   const aberto = UI.versoes[v.chave];
   const aps = aberto ? v.aps : v.aps.slice(0, 4);
   const pessoa = (n) => `<a href="#pessoa-${esc(slug(n))}">${esc(n)}</a>`;
-  return `<article class="q versao" style="--c:${u.cor}"><div class="versao-cab">${uchip(u)}<span class="mudo mini">${esc(u.anos)}</span></div>
+  const f = fotoDaVersao(v);
+  return `<article class="q versao" style="--c:${u.cor}"><div class="versao-cab">${f ? `<span class="versao-foto"><img src="${esc(f.url)}" alt="" loading="lazy"></span>` : ""}${uchip(u)}<span class="mudo mini">${esc(u.anos)}</span></div>
     ${v.atores.length ? `<p class="versao-atores"><span>${soVoz ? "Voz" : "Interpretação"}:</span> ${v.atores.map(pessoa).join(", ")}${v.dubs.length ? `<br><span>Dublagem BR:</span> ${v.dubs.map((d) => d.split(" e ").map(pessoa).join(" e ")).join(", ")}` : ""}</p>` : `<p class="versao-atores"><span>Nos quadrinhos</span></p>`}
     <div class="nota-linha"><span>${med.n ? `${estrelas(Math.round(med.m))} <strong>${mediaTxt(med.m)}</strong> <span class="mudo mini">(${plural(med.n, "nota", "notas")})</span>` : `<span class="mudo">Sem notas ainda</span>`}</span>
       ${avaliador(V.persNotas[v.chave] || 0, "nota-versao", v.chave, `Sua nota para ${p.nome} em ${u.nome}`, { mini: true, desligado: !pode })}</div>
@@ -2836,6 +3031,153 @@ function hidratarImagens(raiz = document) {
   }
 }
 
+// ================= Elenco e fotos de personagem =================
+// São 48 mil linhas de elenco: não cabem no arquivo que o site baixa, então
+// ficam no Supabase e o site busca só o pedaço de que precisa, na hora.
+// As artes dos personagens vêm do Comic Vine, já guardadas lá.
+
+const ELENCO = { porPers: new Map(), porObra: new Map(), fotos: null };
+
+// A ordem de crédito do TMDB diz quem é o protagonista: quem aparece primeiro.
+function papelPelaOrdem(ordem) {
+  if (ordem <= 1) return "protagonista";
+  if (ordem <= 5) return "coadjuvante";
+  return "participacao";
+}
+
+async function doSupabase(tabela, params) {
+  const u = new URL(SUPABASE_URL + "/rest/v1/" + tabela);
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  const r = await fetch(u, { headers: CABECALHO_SUPABASE });
+  if (!r.ok) throw new Error(tabela + " " + r.status);
+  return r.json();
+}
+
+// ---------- artes dos personagens (uma consulta só, guardada por um dia) ----------
+function fotosDosPersonagens() {
+  if (ELENCO.fotos) return ELENCO.fotos;
+  ELENCO.fotos = (async () => {
+    try {
+      const g = JSON.parse(localStorage.getItem("heroteca-fotos-v1"));
+      if (g && Date.now() - g.t < 86400000 && g.m) return g.m;
+    } catch (e) { /* sem cache */ }
+    const m = {};
+    for (const x of await doSupabase("fotos_personagem", { select: "personagem,url" })) {
+      if (typeof x.personagem === "string" && /^https:\/\/[a-z0-9.-]*gamespot\.com\//.test(x.url || "")) m[x.personagem] = x.url;
+    }
+    try { localStorage.setItem("heroteca-fotos-v1", JSON.stringify({ t: Date.now(), m })); } catch (e) { /* sem cache */ }
+    return m;
+  })().catch(() => ({}));
+  return ELENCO.fotos;
+}
+const fotoDe = (pid) => (ELENCO.fotosProntas || {})[pid] || "";
+
+// ---------- obras de um personagem ----------
+// Guarda duas coisas: as obras que o cadastro à mão ainda não tinha, e a foto
+// do ator de cada universo, para a versão daquele universo ter o rosto certo.
+function elencoDoPersonagem(pid) {
+  if (ELENCO.porPers.has(pid)) return ELENCO.porPers.get(pid);
+  const p = (async () => {
+    const linhas = await doSupabase("elenco", {
+      select: "tipo,obra,ordem,ator,papel,foto,voz",
+      personagem: "eq." + pid,
+      order: "ordem.asc",
+      limit: "600",
+    });
+    const extras = [];
+    const fotos = {};
+    for (const l of linhas) {
+      const o = C.porTmdb.get(l.tipo + ":" + l.obra);
+      if (!o) continue;
+      if (l.foto && !fotos[o.universo]) fotos[o.universo] = { ator: l.ator || "", foto: l.foto };
+      // Se a obra já tem esse personagem cadastrado à mão, o cadastro manda.
+      if ((o.elenco || []).some((e) => e.p === pid)) continue;
+      extras.push({
+        obra: o.id, p: pid, u: o.universo, papel: papelPelaOrdem(l.ordem),
+        ator: l.ator || "", retrato: l.foto || "", voz: !!l.voz,
+        dub: "", obs: "", doTmdb: true,
+      });
+    }
+    return { extras, fotos };
+  })().catch(() => ({ extras: [], fotos: {} }));
+  ELENCO.porPers.set(pid, p);
+  return p;
+}
+
+// ---------- elenco de uma obra ----------
+function elencoDaObra(o) {
+  const t = o.tmdb;
+  if (!t || !t.i) return Promise.resolve([]);
+  const k = (t.t || "movie") + ":" + t.i;
+  if (ELENCO.porObra.has(k)) return ELENCO.porObra.get(k);
+  const p = doSupabase("elenco", {
+    select: "ordem,ator,papel,foto,voz,personagem",
+    tipo: "eq." + (t.t || "movie"),
+    obra: "eq." + t.i,
+    order: "ordem.asc",
+    limit: "20",
+  }).catch(() => []);
+  ELENCO.porObra.set(k, p);
+  return p;
+}
+
+// ---------- o que a página do personagem usa ----------
+ELENCO.prontos = new Map();   // pid -> { extras, fotos }
+
+function aparicoesCompletas(pid) {
+  const mao = C.aparicoes.get(pid) || [];
+  const pronto = ELENCO.prontos.get(pid);
+  return pronto ? [...mao, ...pronto.extras] : mao.slice();
+}
+
+// Foto certa para cada versão: arte de quadrinho quando o universo é de HQ,
+// rosto do ator quando é de carne e osso.
+function fotoDaVersao(v) {
+  const u = C.U.get(v.u);
+  const pronto = ELENCO.prontos.get(v.p);
+  const doAtor = pronto && pronto.fotos[v.u];
+  if (u && u.midia !== "HQ" && doAtor) return { url: "https://image.tmdb.org/t/p/w185" + doAtor.foto, tipo: "ator" };
+  const arte = fotoDe(v.p);
+  return arte ? { url: arte, tipo: "arte" } : null;
+}
+
+function pedirElencoDoPersonagem(pid, aoChegar) {
+  if (ELENCO.prontos.has(pid)) return false;
+  ELENCO.prontos.set(pid, null);
+  Promise.all([elencoDoPersonagem(pid), fotosDosPersonagens()]).then(([r, fotos]) => {
+    ELENCO.fotosProntas = fotos;
+    ELENCO.prontos.set(pid, r);
+    aoChegar();
+  }).catch(() => { ELENCO.prontos.set(pid, { extras: [], fotos: {} }); aoChegar(); });
+  return true;
+}
+const elencoCarregado = (pid) => !!ELENCO.prontos.get(pid);
+
+// ---------- elenco da obra, desenhado quando chega ----------
+function cartaoElencoTmdb(x) {
+  const pers = x.personagem && C.P.has(x.personagem) ? C.P.get(x.personagem) : null;
+  const nome = pers ? pers.nome : (x.papel || "").replace(/\s*\((voice|Voice)\)\s*/, "").trim();
+  const retrato = x.foto
+    ? `<span class="erosto"><img src="https://image.tmdb.org/t/p/w185${esc(x.foto)}" alt="" loading="lazy"></span>`
+    : `<span class="erosto erosto--vazio" aria-hidden="true">${esc(iniciais(x.ator || nome || "?"))}</span>`;
+  return `<div class="ecard ecard--tmdb">${retrato}<span class="ecard-n">`
+    + (pers ? `<a href="#personagem-${esc(pers.id)}">${esc(nome)}</a>` : esc(nome || "—"))
+    + `</span><span class="ecard-a"><a href="#pessoa-${esc(slug(x.ator))}">${esc(x.ator)}</a>${x.voz ? " (voz)" : ""}</span></div>`;
+}
+
+function hidratarElenco(raiz = document) {
+  for (const cx of $$("[data-elenco]", raiz)) {
+    const o = C.O.get(cx.dataset.elenco);
+    if (!o) continue;
+    elencoDaObra(o).then((lista) => {
+      if (!cx.isConnected) return;
+      cx.innerHTML = lista.length
+        ? lista.map(cartaoElencoTmdb).join("")
+        : `<p class="mudo">Não achei o elenco desta no TMDB.</p>`;
+    });
+  }
+}
+
 // ================= Rotas =================
 const ROTAS = { inicio: pgInicio, explorar: pgExplorar, personagens: pgPersonagens, universos: pgUniversos, ranking: pgRanking, jogo: pgJogo, diario: pgDiario, listas: pgListas, perfil: pgPerfil, sobre: pgSobre };
 const PREFIXOS = [["obra-", pgObra], ["personagem-", pgPersonagem], ["universo-", pgUniverso], ["pessoa-", pgPessoa], ["lista-", pgLista], ["usuario-", pgUsuario]];
@@ -2859,6 +3201,7 @@ function faltaCatalogo(rota) {
   if (ROTAS_CATALOGO.has(rota.nome)) return true;
   if (rota.nome === "obra") return !C.O.has(rota.arg);
   if (rota.nome === "universo") return !C.U.has(rota.arg);
+  if (rota.nome === "personagem") return true;   // a página lista obras do catálogo todo
   return false;
 }
 function pedirCatalogo() {
@@ -2882,8 +3225,12 @@ function desenhar({ manterScroll = false } = {}) {
   if (faltaCatalogo(rota)) {
     main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
     pedirCatalogo();
+  } else if (rota.nome === "personagem" && C.P.has(rota.arg)) {
+    pedirElencoDoPersonagem(rota.arg, () => { if (rotaAtual().arg === rota.arg) desenhar({ manterScroll: true }); });
+    prepararGaveta();
   }
   hidratarImagens(main);
+  hidratarElenco(main);
   atualizarArmazem();
   atualizarContagem();
   if (manterScroll) {
@@ -2893,6 +3240,60 @@ function desenhar({ manterScroll = false } = {}) {
     window.scrollTo(0, 0);
   }
 }
+// ---------- A gaveta do guia no celular ----------
+// No computador o guia é uma coluna grudada. No celular vira uma gaveta que
+// sobe de baixo, e que dá para arrastar com o dedo.
+let GAVETA_ABERTA = false;
+const noCelular = () => window.matchMedia("(max-width: 979px)").matches;
+
+function alternarGaveta(g, abrir) {
+  GAVETA_ABERTA = !!abrir;
+  g.classList.toggle("aberta", GAVETA_ABERTA);
+  g.style.transform = "";
+  const pux = g.querySelector(".guia-puxador");
+  if (pux) pux.setAttribute("aria-expanded", String(GAVETA_ABERTA));
+}
+
+function prepararGaveta() {
+  const g = $("#guia");
+  if (!g || g.dataset.pronta) return;
+  g.dataset.pronta = "1";
+  if (GAVETA_ABERTA) g.classList.add("aberta");
+  const pux = g.querySelector(".guia-puxador");
+  if (!pux) return;
+
+  let y0 = null, alturaMax = 0, andou = 0, arrastou = false;
+  const fechadaEm = (alt) => Math.max(0, alt - 92);
+
+  const comecar = (e) => {
+    if (!noCelular()) return;
+    y0 = (e.touches ? e.touches[0] : e).clientY;
+    alturaMax = g.getBoundingClientRect().height;
+    andou = 0; arrastou = false;
+    g.classList.add("arrastando");
+  };
+  const mover = (e) => {
+    if (y0 === null) return;
+    andou = (e.touches ? e.touches[0] : e).clientY - y0;
+    if (Math.abs(andou) > 6) arrastou = true;
+    const base = g.classList.contains("aberta") ? 0 : fechadaEm(alturaMax);
+    g.style.transform = `translateY(${Math.max(0, Math.min(fechadaEm(alturaMax), base + andou))}px)`;
+    if (e.cancelable) e.preventDefault();
+  };
+  const soltar = () => {
+    if (y0 === null) return;
+    y0 = null;
+    g.classList.remove("arrastando");
+    alternarGaveta(g, arrastou ? andou < 0 : !g.classList.contains("aberta"));
+  };
+
+  pux.addEventListener("touchstart", comecar, { passive: true });
+  pux.addEventListener("touchmove", mover, { passive: false });
+  pux.addEventListener("touchend", soltar);
+  pux.addEventListener("touchcancel", soltar);
+  pux.addEventListener("click", (e) => { e.preventDefault(); if (!arrastou) alternarGaveta(g, !g.classList.contains("aberta")); arrastou = false; });
+}
+
 function atualizarArmazem() {
   const txt = {
     nuvem: "Seus registros ficam salvos na sua conta Claude e aparecem em qualquer aparelho em que você abrir esta página.",
@@ -2935,6 +3336,12 @@ async function copiar(texto, onde) {
 const ACOES = {
   pular: () => $("#conteudo").focus(),
   mais: (el) => { const k = el.dataset.k; LIMITES[k] = limiteDe(k) + POR_VEZ; desenhar({ manterScroll: true }); },
+  lado: () => {
+    LADO_GUIA = LADO_GUIA === "esq" ? "dir" : "esq";
+    try { localStorage.setItem("heroteca-lado", LADO_GUIA); } catch (e) { /* sem cache */ }
+    desenhar({ manterScroll: true });
+  },
+
   recarregar: () => iniciar(),
   registrar: () => abrirBusca("registrar"),
   buscar: () => abrirBusca("ir"),

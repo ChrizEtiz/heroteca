@@ -123,9 +123,15 @@ try:
         pg.wait_for_timeout(200)
         pg.click('[data-acao="modal-fechar"]')
 
-        # personagem: favoritar, versões, cartão
-        ir("personagem-wolverine", ".versao")
+        # personagem: guia, abas, favoritar, versões, cartão
+        ir("personagem-wolverine", ".chave-bt")
+        if pg.locator("#guia").count() != 1:
+            erros.append("a página do personagem não tem o guia")
+        if pg.locator(".chave-bt").count() != 3:
+            erros.append("a chave do personagem não tem as três abas")
         pg.click('[data-acao="fav-pers"]')
+        pg.click('.chave-bt >> nth=2')              # aba Versões
+        pg.wait_for_selector(".versao", timeout=8000)
         pg.click('[data-acao="versao-mais"] >> nth=0')
         pg.click('[data-acao="partilhar-pers"]')
         pg.wait_for_selector(".cartao-img", timeout=8000)
@@ -160,6 +166,8 @@ try:
         # perfil: editar, exemplos, seguir
         ir("perfil", ".perfil-cab")
         pg.click('[data-acao="perfil-editar"]')
+        pg.wait_for_selector("#p-usuario", timeout=6000)
+        pg.wait_for_timeout(150)
         pg.fill("#p-nome", "Teste <script>")
         pg.fill("#p-usuario", "Fã do Multiverso!")
         pg.click('button[form="form-perfil"]')

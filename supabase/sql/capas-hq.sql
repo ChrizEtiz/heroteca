@@ -44,3 +44,20 @@ from (values
   ('spawn-1992',                      'Spawn',                              1992, '1'),
   ('hellboy-semente-da-destruicao',   'Hellboy: Seed of Destruction',       1994, '1')
 ) as v(obra, vol, ano, num);
+
+-- =====================================================================
+-- Elenco e fotos de personagem (novembro de 2026)
+-- =====================================================================
+-- privado.tmdb(caminho, params)        ponte SQL para o TMDB, chave em public.segredos
+-- privado.tmdb_bruto                   5.910 obras colhidas do /discover e do /search
+-- privado.tmdb_elenco                  48.272 linhas de elenco (18 primeiros créditos de cada obra)
+-- privado.pers_termos                  apelidos de cada personagem, para casar com o texto do TMDB
+-- privado.pers_cv                      nome de cada personagem no Comic Vine
+-- public.elenco                        o que o site lê: elenco + o personagem do catálogo quando casou
+-- public.fotos_personagem              arte de cada um dos 107 personagens, do Comic Vine
+--
+-- O casamento usa fronteira de palavra e é limitado pela franquia da obra,
+-- senão o "Flash" da DC cairia num filme da Marvel. Apelidos perigosos foram
+-- tirados à mão: "Logan" é sobrenome do Mutano, "Raven" é nome da Mística,
+-- "Aranha" pega Mulher-Aranha. E privado.limpar_variantes() desfaz os casos de
+-- She-Hulk, Hulk Vermelho, Batgirl e parecidos caírem no personagem principal.

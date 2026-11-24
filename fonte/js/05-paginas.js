@@ -2,10 +2,15 @@
 const UI = {
   explorar: { q: "", formato: "todos", franquia: "todas", ordem: "recentes", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
+  personagem: { aba: "protagonista" },
   diario: { ano: "todos", formato: "todos", tag: "" },
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+
+// De que lado da tela fica o guia do personagem. Fica guardado no aparelho.
+let LADO_GUIA = "esq";
+try { if (localStorage.getItem("heroteca-lado") === "dir") LADO_GUIA = "dir"; } catch (e) { /* sem cache */ }
 
 // Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
 const POR_VEZ = 60;
@@ -229,7 +234,8 @@ function pgObra(id) {
       ${o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : ""}
       ${blocoProgresso(o, e)}
       ${o.elenco.length ? `<section class="q bloco"><h2 class="h2">${o.formato === "hq" ? "Personagens" : "Personagens e elenco"}</h2><div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>
-        ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>` : ""}
+        ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>`
+        : o.tmdb && o.tmdb.i ? `<section class="q bloco"><h2 class="h2">Elenco</h2><div class="elenco" data-elenco="${esc(o.id)}"><p class="mudo">Buscando o elenco...</p></div></section>` : ""}
       ${o.elenco.length && !breve ? blocoNotasPersonagens(o) : ""}
       <section class="bloco"><div class="sec-h" style="margin:0"><h2 class="leg">Resenhas</h2>${breve ? "" : `<button class="bt bt--mini" data-acao="log-abrir" data-obra="${esc(o.id)}">${ic("lapis")}Escrever a minha</button>`}</div>
         ${resenhas.length ? `<p class="sec-nota" style="margin:0">${NOTA_EXEMPLOS}</p><div class="resenhas">${resenhas.map((l) => resenha(l)).join("")}</div>` : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`}</section>
@@ -314,24 +320,90 @@ function pgPersonagem(id) {
   const p = C.P.get(id);
   if (!p) return naoAchei();
   PAG.titulo = p.nome;
-  const vs = versoesDe(id);
+  const cor = corValida(COR_FRANQ[p.franquia]);
   const g = progressoPersonagem(id);
   const fav = R.favoritos.personagens.includes(id);
-  const cor = corValida(COR_FRANQ[p.franquia]);
-  const linha = [p.identidade, p.primeira ? "Primeira aparição: " + p.primeira : "Estreia: " + p.estreia].filter(Boolean).map(esc).join(" · ");
-  return `<header class="faixa" style="--c1:${cor}"><div class="faixa-in faixa-in--sem-capa"><span class="emb-w">${emblema(p, "emb--xg")}</span><div class="faixa-txt">
-      <div class="chips"><span class="chip">${esc(p.franquia)}</span>${p.jogo ? `<a class="chip" href="#jogo">${ic("jogo")}Está no ${NOME_DO_JOGO}</a>` : ""}</div>
-      <h1 class="h1">${esc(p.nome)}</h1><p class="faixa-linha">${linha}</p></div></div></header>
-    <div class="acoes" style="margin-top:18px"><button class="bt${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Nos seus 4 favoritos" : "Pôr nos 4 favoritos"}</button>
-      <button class="bt" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar meu progresso</button></div>
-    <div class="grid2" style="margin-top:20px">
-      <section class="q bloco"><div class="sec-h" style="margin:0"><h2 class="h2">Seu progresso</h2><span class="h2 num">${g.pct}%</span></div>${barra(g.pct)}
-        <p class="mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")} com esse personagem, contando participações.</p></section>
-      ${p.resumo ? `<section class="q bloco"><h2 class="h2">Quem é</h2><p>${esc(p.resumo)}</p></section>` : ""}
-    </div>
-    ${secao("Versões", `<div class="versoes">${vs.map(cardVersao).join("")}</div>`, { nota: "Cada universo tem a sua versão, com nota própria. Você só avalia versões de obras que viu ou leu." })}
-    ${p.jogo ? secao(`Ficha no ${NOME_DO_JOGO}`, fichaJogo(p.jogo)) : ""}`;
+  const vs = versoesDe(id);
+  const carregando = !elencoCarregado(id);
+
+  // ---------- o guia que fica grudado na tela ----------
+  const arte = fotoDe(id);
+  const guia = `<aside class="guia" id="guia">
+    <button class="guia-puxador" type="button" aria-label="Abrir ou fechar o guia" aria-expanded="false"></button>
+    <div class="guia-rolo">
+      <div class="guia-retrato" style="--c:${cor}">${arte
+        ? `<img src="${esc(arte)}" alt="" loading="lazy">`
+        : `<span class="guia-iniciais">${esc(iniciais(p.nome))}</span>`}</div>
+      <h1 class="h1 guia-nome">${esc(p.nome)}</h1>
+      ${p.identidade ? `<p class="guia-sub">${esc(p.identidade)}</p>` : ""}
+      <div class="guia-acoes">
+        <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Favorito" : "Favoritar"}</button>
+        <button class="bt bt--mini" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar</button>
+      </div>
+      <div class="chips"><span class="chip">${esc(p.franquia)}</span>${p.jogo ? `<a class="chip" href="#jogo">${ic("jogo")}${NOME_DO_JOGO}</a>` : ""}</div>
+      <div class="guia-numeros">
+        <div><b>${g.total}</b><span>${g.total === 1 ? "obra" : "obras"}</span></div>
+        <div><b>${vs.length}</b><span>${vs.length === 1 ? "versão" : "versões"}</span></div>
+        <div><b>${g.pct}%</b><span>visto</span></div>
+      </div>
+      ${barra(g.pct, "barra--fina")}
+      <p class="guia-linha mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")}.</p>
+      ${p.primeira || p.estreia ? `<p class="guia-linha mudo">${p.primeira ? "Primeira aparição: " + esc(p.primeira) : "Estreia: " + esc(p.estreia)}</p>` : ""}
+      ${p.resumo ? `<p class="guia-resumo">${esc(p.resumo)}</p>` : ""}
+      <button class="guia-lado" data-acao="lado">${ic("troca")}Guia ${LADO_GUIA === "esq" ? "à direita" : "à esquerda"}</button>
+    </div></aside>`;
+
+  // ---------- as obras, separadas por papel ----------
+  const aps = aparicoesCompletas(id);
+  const porObra = new Map();
+  for (const a of aps) {
+    const o = C.O.get(a.obra);
+    if (!o) continue;
+    const ja = porObra.get(a.obra);
+    if (!ja || ORDEM_PAPEL[a.papel] < ORDEM_PAPEL[ja.papel]) porObra.set(a.obra, a);
+  }
+  const todas = [...porObra.values()].map((a) => ({ a, o: C.O.get(a.obra) }))
+    .sort((x, y) => y.o.ano - x.o.ano || x.o.titulo.localeCompare(y.o.titulo, "pt-BR"));
+  const protagoniza = todas.filter((x) => x.a.papel === "protagonista");
+  const participa = todas.filter((x) => x.a.papel !== "protagonista");
+
+  const abas = [["protagonista", `Protagonista (${protagoniza.length})`], ["participacao", `Participações (${participa.length})`], ["versoes", `Versões (${vs.length})`]];
+  const atual = abas.some(([k]) => k === UI.personagem.aba) ? UI.personagem.aba : "protagonista";
+  const chave = `<div class="chave" role="tablist">${abas.map(([k, t]) =>
+    `<button class="chave-bt" role="tab" aria-selected="${atual === k}" data-acao="filtro" data-k="personagem.aba" data-v="${k}">${esc(t)}</button>`).join("")}</div>`;
+
+  let lista;
+  if (atual === "versoes") {
+    lista = vs.length ? `<div class="versoes">${vs.map(cardVersao).join("")}</div>`
+      : `<p class="mudo">Nenhuma versão com nota ainda.</p>`;
+  } else {
+    const itens = atual === "protagonista" ? protagoniza : participa;
+    lista = itens.length ? `<div class="lista-ap">${itens.map(({ a, o }) => itemAparicao(o, a)).join("")}</div>`
+      : `<p class="mudo">${atual === "protagonista" ? `Nenhuma obra com ${esc(p.nome)} no papel principal.` : `Só aparições principais por enquanto.`}</p>`;
+  }
+
+  return `<div class="pers" data-lado="${esc(LADO_GUIA)}">${guia}
+    <div class="pers-corpo">${chave}${lista}
+      ${carregando ? `<p class="carregando-cat">Buscando o resto das aparições...</p>` : ""}
+    </div></div>`;
 }
+
+// Uma linha da lista de aparições: capa, título, papel e quem interpretou.
+function itemAparicao(o, a) {
+  const u = C.U.get(o.universo);
+  const e = estObra(o.id) || {};
+  const quem = a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "";
+  return `<a class="ap ap--linha" href="#obra-${esc(o.id)}">
+    <span class="ap-capa">${capa(o)}</span>
+    <span class="ap-txt">
+      <span class="ap-t">${esc(o.titulo)}</span>
+      <span class="ap-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].nome)} · ${esc(u.nome)}</span>
+      ${quem ? `<span class="ap-m">${esc(quem)}</span>` : ""}
+    </span>
+    <span class="ap-fim">${papelChip(a.papel)}${e.status ? `<span class="ap-st st-${esc(e.status)}">${esc(nomeStatus(e.status, o))}</span>` : ""}</span>
+  </a>`;
+}
+
 function cardVersao(v) {
   const u = C.U.get(v.u), p = C.P.get(v.p);
   const med = mediaVersao(v.chave);
@@ -340,7 +412,8 @@ function cardVersao(v) {
   const aberto = UI.versoes[v.chave];
   const aps = aberto ? v.aps : v.aps.slice(0, 4);
   const pessoa = (n) => `<a href="#pessoa-${esc(slug(n))}">${esc(n)}</a>`;
-  return `<article class="q versao" style="--c:${u.cor}"><div class="versao-cab">${uchip(u)}<span class="mudo mini">${esc(u.anos)}</span></div>
+  const f = fotoDaVersao(v);
+  return `<article class="q versao" style="--c:${u.cor}"><div class="versao-cab">${f ? `<span class="versao-foto"><img src="${esc(f.url)}" alt="" loading="lazy"></span>` : ""}${uchip(u)}<span class="mudo mini">${esc(u.anos)}</span></div>
     ${v.atores.length ? `<p class="versao-atores"><span>${soVoz ? "Voz" : "Interpretação"}:</span> ${v.atores.map(pessoa).join(", ")}${v.dubs.length ? `<br><span>Dublagem BR:</span> ${v.dubs.map((d) => d.split(" e ").map(pessoa).join(" e ")).join(", ")}` : ""}</p>` : `<p class="versao-atores"><span>Nos quadrinhos</span></p>`}
     <div class="nota-linha"><span>${med.n ? `${estrelas(Math.round(med.m))} <strong>${mediaTxt(med.m)}</strong> <span class="mudo mini">(${plural(med.n, "nota", "notas")})</span>` : `<span class="mudo">Sem notas ainda</span>`}</span>
       ${avaliador(V.persNotas[v.chave] || 0, "nota-versao", v.chave, `Sua nota para ${p.nome} em ${u.nome}`, { mini: true, desligado: !pode })}</div>

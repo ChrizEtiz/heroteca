@@ -21,6 +21,7 @@ function faltaCatalogo(rota) {
   if (ROTAS_CATALOGO.has(rota.nome)) return true;
   if (rota.nome === "obra") return !C.O.has(rota.arg);
   if (rota.nome === "universo") return !C.U.has(rota.arg);
+  if (rota.nome === "personagem") return true;   // a página lista obras do catálogo todo
   return false;
 }
 function pedirCatalogo() {
@@ -44,8 +45,12 @@ function desenhar({ manterScroll = false } = {}) {
   if (faltaCatalogo(rota)) {
     main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
     pedirCatalogo();
+  } else if (rota.nome === "personagem" && C.P.has(rota.arg)) {
+    pedirElencoDoPersonagem(rota.arg, () => { if (rotaAtual().arg === rota.arg) desenhar({ manterScroll: true }); });
+    prepararGaveta();
   }
   hidratarImagens(main);
+  hidratarElenco(main);
   atualizarArmazem();
   atualizarContagem();
   if (manterScroll) {
@@ -55,6 +60,60 @@ function desenhar({ manterScroll = false } = {}) {
     window.scrollTo(0, 0);
   }
 }
+// ---------- A gaveta do guia no celular ----------
+// No computador o guia é uma coluna grudada. No celular vira uma gaveta que
+// sobe de baixo, e que dá para arrastar com o dedo.
+let GAVETA_ABERTA = false;
+const noCelular = () => window.matchMedia("(max-width: 979px)").matches;
+
+function alternarGaveta(g, abrir) {
+  GAVETA_ABERTA = !!abrir;
+  g.classList.toggle("aberta", GAVETA_ABERTA);
+  g.style.transform = "";
+  const pux = g.querySelector(".guia-puxador");
+  if (pux) pux.setAttribute("aria-expanded", String(GAVETA_ABERTA));
+}
+
+function prepararGaveta() {
+  const g = $("#guia");
+  if (!g || g.dataset.pronta) return;
+  g.dataset.pronta = "1";
+  if (GAVETA_ABERTA) g.classList.add("aberta");
+  const pux = g.querySelector(".guia-puxador");
+  if (!pux) return;
+
+  let y0 = null, alturaMax = 0, andou = 0, arrastou = false;
+  const fechadaEm = (alt) => Math.max(0, alt - 92);
+
+  const comecar = (e) => {
+    if (!noCelular()) return;
+    y0 = (e.touches ? e.touches[0] : e).clientY;
+    alturaMax = g.getBoundingClientRect().height;
+    andou = 0; arrastou = false;
+    g.classList.add("arrastando");
+  };
+  const mover = (e) => {
+    if (y0 === null) return;
+    andou = (e.touches ? e.touches[0] : e).clientY - y0;
+    if (Math.abs(andou) > 6) arrastou = true;
+    const base = g.classList.contains("aberta") ? 0 : fechadaEm(alturaMax);
+    g.style.transform = `translateY(${Math.max(0, Math.min(fechadaEm(alturaMax), base + andou))}px)`;
+    if (e.cancelable) e.preventDefault();
+  };
+  const soltar = () => {
+    if (y0 === null) return;
+    y0 = null;
+    g.classList.remove("arrastando");
+    alternarGaveta(g, arrastou ? andou < 0 : !g.classList.contains("aberta"));
+  };
+
+  pux.addEventListener("touchstart", comecar, { passive: true });
+  pux.addEventListener("touchmove", mover, { passive: false });
+  pux.addEventListener("touchend", soltar);
+  pux.addEventListener("touchcancel", soltar);
+  pux.addEventListener("click", (e) => { e.preventDefault(); if (!arrastou) alternarGaveta(g, !g.classList.contains("aberta")); arrastou = false; });
+}
+
 function atualizarArmazem() {
   const txt = {
     nuvem: "Seus registros ficam salvos na sua conta Claude e aparecem em qualquer aparelho em que você abrir esta página.",
@@ -97,6 +156,12 @@ async function copiar(texto, onde) {
 const ACOES = {
   pular: () => $("#conteudo").focus(),
   mais: (el) => { const k = el.dataset.k; LIMITES[k] = limiteDe(k) + POR_VEZ; desenhar({ manterScroll: true }); },
+  lado: () => {
+    LADO_GUIA = LADO_GUIA === "esq" ? "dir" : "esq";
+    try { localStorage.setItem("heroteca-lado", LADO_GUIA); } catch (e) { /* sem cache */ }
+    desenhar({ manterScroll: true });
+  },
+
   recarregar: () => iniciar(),
   registrar: () => abrirBusca("registrar"),
   buscar: () => abrirBusca("ir"),
