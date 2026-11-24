@@ -12,6 +12,23 @@ async function carregarCatalogo() {
   indexar(await r.json());
 }
 
+// O catálogo grande (milhares de obras do TMDB) só desce quando a pessoa vai
+// explorar ou procurar. Depois disso fica em memória até fechar a aba.
+let promessaExtra = null;
+const extraPronto = () => C.extraCarregado === true;
+function carregarExtra() {
+  if (!promessaExtra) {
+    promessaExtra = (async () => {
+      const r = await fetch("catalogo-extra.json", { cache: "default" });
+      if (!r.ok) throw new Error("extra " + r.status);
+      const regs = await r.json();
+      C.extraCarregado = true;
+      indexar(regs);
+    })().catch((e) => { promessaExtra = null; throw e; });
+  }
+  return promessaExtra;
+}
+
 function addPessoa(nome, credito) {
   const id = slug(nome);
   if (!id) return;
@@ -21,16 +38,25 @@ function addPessoa(nome, credito) {
 }
 
 function indexar(regs) {
+  // tudo que é derivado é refeito do zero, para indexar poder rodar de novo
+  C.versoes.clear(); C.aparicoes.clear(); C.pessoas.clear();
+  C.jogo = []; C.jogoPorId.clear();
   for (const x of regs) {
     if (!x || typeof x !== "object") continue;
     if (x.tipo === "universo") C.U.set(x.id, x);
     else if (x.tipo === "personagem") C.P.set(x.id, x);
     else if (x.tipo === "obra") C.O.set(x.id, x);
-    else if (x.tipo === "lista") C.L.push(x);
+    else if (x.tipo === "lista" && !C.L.some((l) => l.id === x.id)) C.L.push(x);
   }
   C.universos = [...C.U.values()];
   C.personagens = [...C.P.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   C.obras = [...C.O.values()].filter((o) => C.U.has(o.universo));
+  // As obras vindas do TMDB chegam enxutas: completa o que as páginas esperam.
+  for (const o of C.obras) {
+    o.franquia = C.U.get(o.universo).franquia;
+    if (!o.original) o.original = o.titulo;
+    if (!o.elenco) o.elenco = [];
+  }
   for (const u of C.universos) { u.cor = corValida(u.cor); u.busca = normalizar(`${u.nome} ${u.franquia} ${u.midia}`); u.obras = []; }
   for (const p of C.personagens) p.busca = [p.nome, p.identidade, ...(p.apelidos || [])].filter(Boolean).map(normalizar);
   for (const o of C.obras) {

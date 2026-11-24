@@ -14,6 +14,20 @@ function chaveFoco(el) {
   const ds = ["acao", "obra", "s", "n", "alvo", "t", "e", "i", "p", "u", "k", "v", "lista", "log", "d"].filter((k) => el.dataset && el.dataset[k] != null);
   return ds.length ? ds.map((k) => `[data-${k}="${CSS.escape(el.dataset[k])}"]`).join("") : null;
 }
+// Páginas que só fazem sentido com o catálogo inteiro na mão.
+const ROTAS_CATALOGO = new Set(["explorar", "universos", "ranking"]);
+function faltaCatalogo(rota) {
+  if (C.extraCarregado) return false;
+  if (ROTAS_CATALOGO.has(rota.nome)) return true;
+  if (rota.nome === "obra") return !C.O.has(rota.arg);
+  if (rota.nome === "universo") return !C.U.has(rota.arg);
+  return false;
+}
+function pedirCatalogo() {
+  carregarExtra().then(() => desenhar({ manterScroll: true })).catch(() => {
+    $$("#conteudo .carregando-cat").forEach((el) => { el.textContent = "Não consegui carregar o resto do catálogo. Tente recarregar a página."; });
+  });
+}
 function desenhar({ manterScroll = false } = {}) {
   if (!C.obras.length) return;
   const rota = rotaAtual();
@@ -27,6 +41,10 @@ function desenhar({ manterScroll = false } = {}) {
   $$(".nav a, .abas a").forEach((a) => { if (a.dataset.nav === aba) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   document.title = PAG.titulo ? `${PAG.titulo} · ${NOME_DO_SITE}` : `${NOME_DO_SITE} · diário de heróis`;
   if (rota.nome === "jogo") desenharJogo(false, false);
+  if (faltaCatalogo(rota)) {
+    main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
+    pedirCatalogo();
+  }
   hidratarImagens(main);
   atualizarArmazem();
   atualizarContagem();
@@ -78,6 +96,7 @@ async function copiar(texto, onde) {
 }
 const ACOES = {
   pular: () => $("#conteudo").focus(),
+  mais: (el) => { const k = el.dataset.k; LIMITES[k] = limiteDe(k) + POR_VEZ; desenhar({ manterScroll: true }); },
   recarregar: () => iniciar(),
   registrar: () => abrirBusca("registrar"),
   buscar: () => abrirBusca("ir"),

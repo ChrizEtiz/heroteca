@@ -6,6 +6,18 @@ const UI = {
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+
+// Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
+const POR_VEZ = 60;
+const LIMITES = {};
+const limiteDe = (chave) => LIMITES[chave] || POR_VEZ;
+function gradeLimitada(obras, chave, classe = "grade") {
+  const lim = limiteDe(chave);
+  const mostra = obras.slice(0, lim);
+  const falta = obras.length - mostra.length;
+  return `<div class="${classe}">${mostra.map((o) => cardObra(o)).join("")}</div>`
+    + (falta > 0 ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>` : "");
+}
 const NOTA_EXEMPLOS = "Perfis de exemplo, só para testar o beta. No site de verdade, aqui aparecem pessoas reais.";
 
 function naoAchei() {
@@ -107,6 +119,7 @@ function pgExplorar() {
 function relevancia(q) { return (a, b) => Number(!a.busca.startsWith(q)) - Number(!b.busca.startsWith(q)) || b.ano - a.ano; }
 function resultadosExplorar() {
   const f = UI.explorar;
+  if (f.q !== LIMITES.__q) { LIMITES.__q = f.q; LIMITES.busca = POR_VEZ; LIMITES.explorar = POR_VEZ; }
   const q = normalizar(f.q);
   let obras = C.obras.filter((o) => (f.formato === "todos" || o.formato === f.formato) && (f.franquia === "todas" || o.franquia === f.franquia));
   if (f.status !== "todos") obras = obras.filter((o) => { const s = estObra(o.id)?.status; return f.status === "nao" ? !s : s === f.status; });
@@ -115,9 +128,9 @@ function resultadosExplorar() {
     const pers = C.personagens.filter((p) => p.busca.some((b) => b.includes(q))).slice(0, 12);
     const unis = C.universos.filter((u) => u.busca.includes(q)).slice(0, 8);
     const pess = [...C.pessoas.values()].filter((p) => normalizar(p.nome).includes(q)).slice(0, 12);
-    if (!obras.length && !pers.length && !unis.length && !pess.length) return `<div class="q vazio"><p>Nada com “${esc(f.q)}” por aqui ainda.</p><p class="mudo">O catálogo do beta ainda é pequeno. Tente outro nome ou em inglês.</p></div>`;
+    if (!obras.length && !pers.length && !unis.length && !pess.length) return `<div class="q vazio"><p>Nada com “${esc(f.q)}” por aqui ainda.</p><p class="mudo">Tente o nome em inglês, ou escreva menos letras.</p></div>`;
     return (pers.length ? `<h2 class="qgrupo">Personagens</h2><div class="pgrade" style="margin:10px 0 22px">${pers.map(cardPersonagem).join("")}</div>` : "")
-      + (obras.length ? `<h2 class="qgrupo">Obras</h2><div class="grade" style="margin:10px 0 22px">${obras.map((o) => cardObra(o)).join("")}</div>` : "")
+      + (obras.length ? `<h2 class="qgrupo">Obras</h2>${gradeLimitada(obras, "busca")}` : "")
       + (unis.length ? `<h2 class="qgrupo">Universos</h2><div class="chips" style="margin:10px 0 22px">${unis.map((u) => uchip(u)).join("")}</div>` : "")
       + (pess.length ? `<h2 class="qgrupo">Pessoas</h2><div class="chips" style="margin:10px 0 22px">${pess.map((p) => `<a class="chip" href="#pessoa-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>` : "");
   }
@@ -129,7 +142,7 @@ function resultadosExplorar() {
   }[f.ordem] || ((a, b) => b.ano - a.ano);
   obras.sort(ord);
   if (!obras.length) return `<div class="q vazio"><p>Nenhuma obra com esses filtros.</p></div>`;
-  return `<p class="resultado-n">${plural(obras.length, "obra", "obras")}</p><div class="grade">${obras.map((o) => cardObra(o)).join("")}</div>`;
+  return `<p class="resultado-n">${plural(obras.length, "obra", "obras")}</p>${gradeLimitada(obras, "explorar")}`;
 }
 
 // ---------- Personagens, universos e ranking ----------
@@ -353,7 +366,7 @@ function pgUniverso(id) {
       <h1 class="h1">${esc(u.nome)}</h1><p class="faixa-linha">${esc(u.desc)}</p></div></div></header>
     <section class="q bloco" style="margin-top:20px"><div class="sec-h" style="margin:0"><h2 class="h2">Seu progresso</h2><span class="h2 num">${g.pct}%</span></div>${barra(g.pct)}
       <div class="acoes"><span class="mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")} deste universo.</span><button class="bt bt--mini" data-acao="partilhar-uni" data-u="${esc(id)}">${ic("partilhar")}Compartilhar</button></div></section>
-    ${secao("Obras em ordem de lançamento", `<div class="grade">${u.obras.map((o) => cardObra(o)).join("")}</div>`)}
+    ${secao("Obras em ordem de lançamento", gradeLimitada(u.obras, "uni-" + id))}
     ${vers.length ? secao("Personagens neste universo", `<div class="chips">${vers.map((p) => `<a class="chip" href="#personagem-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>`) : ""}`;
 }
 function pgPessoa(id) {
@@ -501,7 +514,7 @@ function pgSobre() {
   return `<h1 class="h1" style="margin-top:8px">Sobre o beta</h1>
     <div class="prosa" style="margin-top:14px;font-size:17px">
       <p>A ${NOME_DO_SITE} é um diário só de heróis: filmes, séries, desenhos e HQs da Marvel, da DC e de outras editoras, tudo num lugar só. O foco são os personagens: cada versão de cada personagem tem página, nota e lista de aparições.</p>
-      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade é de exemplo e o catálogo ainda é pequeno.</p>
+      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade ainda é de exemplo.</p>
     </div>
     ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres do TMDB e capas do Comic Vine, com os avisos de crédito que eles pedem.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
     ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>Os pôsteres de filmes, séries e desenhos vêm do <a href="https://www.themoviedb.org/">TMDB</a>, e as capas de HQ vêm do <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Cada HQ usa a capa da primeira edição da história. Onde não existe capa, a ${NOME_DO_SITE} desenha uma.</p></div>`)}

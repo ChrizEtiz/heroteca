@@ -21,9 +21,12 @@ async function ponte(params) {
   return r.json();
 }
 async function tmdbInfo(o) {
+  // A maioria das obras já vem do catálogo com o id e o caminho do pôster.
+  if (o.tmdb && o.tmdb.i && o.tmdb.p) return { id: Number(o.tmdb.i), p: o.tmdb.p, b: "" };
   const c = tmdbCache();
   const k = o.id + "|" + LINGUA_TMDB;
   if (c[k] !== undefined) return c[k];
+  if (!o.tmdb || !o.tmdb.q) return null;
   const j = await ponte({ acao: "busca", tipo: o.tmdb.t === "tv" ? "tv" : "movie", q: o.tmdb.q, y: String(o.tmdb.y), lang: LINGUA_TMDB });
   const info = j && j.id ? { id: Number(j.id), p: caminhoCartaz(j.p), b: caminhoCartaz(j.b) } : null;
   c[k] = info;
@@ -80,6 +83,7 @@ function hidratarImagens(raiz = document) {
   for (const img of $$("img[data-tmdb]", raiz)) {
     const o = C.O.get(img.dataset.tmdb);
     if (!o || !o.tmdb) continue;
+    if (o.tmdb.p) { mostrarImg(img, "https://image.tmdb.org/t/p/w342" + o.tmdb.p); continue; }
     const c = tmdbCache()[o.id + "|" + LINGUA_TMDB];
     if (c !== undefined) { if (c && c.p) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + c.p); continue; }
     agendar(async () => { const info = await tmdbInfo(o); if (info && info.p && img.isConnected) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + info.p); });

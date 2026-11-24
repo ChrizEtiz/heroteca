@@ -48,6 +48,8 @@ function confirmar(titulo, texto, rotulo, fn, perigo = true) {
 let MODO_BUSCA = "ir";
 function abrirBusca(modo) {
   MODO_BUSCA = modo;
+  // Procurar sem o catálogo inteiro acharia pouca coisa: busca ele agora.
+  if (!C.extraCarregado) carregarExtra().then(() => { const c = $("#qb-res"); if (c) c.innerHTML = resultadosBusca($("#qb")?.value || ""); }).catch(() => {});
   const titulo = modo === "registrar" ? "O que você viu ou leu?" : modo.startsWith("lista:") ? "Adicionar à lista" : "Buscar";
   abrirModal(titulo, `<div class="busca-g">${ic("busca")}<input class="entrada" id="qb" type="search" autocomplete="off" placeholder="${modo === "ir" ? "Obra, personagem, universo ou pessoa" : "Filme, série, desenho ou HQ"}" aria-label="Buscar" data-foco></div><div class="qres" id="qb-res">${resultadosBusca("")}</div>`);
 }
@@ -78,7 +80,7 @@ function resultadosBusca(texto) {
     if (unis.length) h += `<p class="qgrupo">Universos</p>${unis.map((u) => `<a class="qr" href="#universo-${esc(u.id)}"><span class="emb" style="--av:${u.cor}" aria-hidden="true">${ic("globo")}</span><span><span class="qr-t" style="display:block">${esc(u.nome)}</span><span class="qr-m">${esc(u.midia)} · ${esc(u.anos)}</span></span></a>`).join("")}`;
     if (pess.length) h += `<p class="qgrupo">Pessoas</p>${pess.map((p) => `<a class="qr" href="#pessoa-${esc(p.id)}">${emblema({ nome: p.nome }, "", "#6b6475")}<span><span class="qr-t" style="display:block">${esc(p.nome)}</span><span class="qr-m">${plural(p.creditos.length, "crédito", "créditos")}</span></span></a>`).join("")}`;
   }
-  return h || `<p class="mudo">Nada com “${esc(texto)}” ainda. O catálogo do beta é pequeno: tente outro nome ou em inglês.</p>`;
+  return h || `<p class="mudo">Nada com “${esc(texto)}” ainda. Tente o nome em inglês, ou escreva menos letras.</p>`;
 }
 
 // ---------- Registrar no diário ----------

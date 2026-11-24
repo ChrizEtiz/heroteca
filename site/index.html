@@ -714,6 +714,10 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
   .top4p a { font-size: 12.5px; }
 }
 
+/* ---------- listas longas ---------- */
+.mais-linha { display: flex; justify-content: center; margin: 20px 0 4px; }
+.carregando-cat { color: var(--muted); text-align: center; padding: 22px 0; font-size: .94rem; }
+
 </style>
 </head>
 <body>
@@ -915,6 +919,23 @@ async function carregarCatalogo() {
   indexar(await r.json());
 }
 
+// O catálogo grande (milhares de obras do TMDB) só desce quando a pessoa vai
+// explorar ou procurar. Depois disso fica em memória até fechar a aba.
+let promessaExtra = null;
+const extraPronto = () => C.extraCarregado === true;
+function carregarExtra() {
+  if (!promessaExtra) {
+    promessaExtra = (async () => {
+      const r = await fetch("catalogo-extra.json", { cache: "default" });
+      if (!r.ok) throw new Error("extra " + r.status);
+      const regs = await r.json();
+      C.extraCarregado = true;
+      indexar(regs);
+    })().catch((e) => { promessaExtra = null; throw e; });
+  }
+  return promessaExtra;
+}
+
 function addPessoa(nome, credito) {
   const id = slug(nome);
   if (!id) return;
@@ -924,16 +945,25 @@ function addPessoa(nome, credito) {
 }
 
 function indexar(regs) {
+  // tudo que é derivado é refeito do zero, para indexar poder rodar de novo
+  C.versoes.clear(); C.aparicoes.clear(); C.pessoas.clear();
+  C.jogo = []; C.jogoPorId.clear();
   for (const x of regs) {
     if (!x || typeof x !== "object") continue;
     if (x.tipo === "universo") C.U.set(x.id, x);
     else if (x.tipo === "personagem") C.P.set(x.id, x);
     else if (x.tipo === "obra") C.O.set(x.id, x);
-    else if (x.tipo === "lista") C.L.push(x);
+    else if (x.tipo === "lista" && !C.L.some((l) => l.id === x.id)) C.L.push(x);
   }
   C.universos = [...C.U.values()];
   C.personagens = [...C.P.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   C.obras = [...C.O.values()].filter((o) => C.U.has(o.universo));
+  // As obras vindas do TMDB chegam enxutas: completa o que as páginas esperam.
+  for (const o of C.obras) {
+    o.franquia = C.U.get(o.universo).franquia;
+    if (!o.original) o.original = o.titulo;
+    if (!o.elenco) o.elenco = [];
+  }
   for (const u of C.universos) { u.cor = corValida(u.cor); u.busca = normalizar(`${u.nome} ${u.franquia} ${u.midia}`); u.obras = []; }
   for (const p of C.personagens) p.busca = [p.nome, p.identidade, ...(p.apelidos || [])].filter(Boolean).map(normalizar);
   for (const o of C.obras) {
@@ -1567,6 +1597,18 @@ const UI = {
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+
+// Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
+const POR_VEZ = 60;
+const LIMITES = {};
+const limiteDe = (chave) => LIMITES[chave] || POR_VEZ;
+function gradeLimitada(obras, chave, classe = "grade") {
+  const lim = limiteDe(chave);
+  const mostra = obras.slice(0, lim);
+  const falta = obras.length - mostra.length;
+  return `<div class="${classe}">${mostra.map((o) => cardObra(o)).join("")}</div>`
+    + (falta > 0 ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>` : "");
+}
 const NOTA_EXEMPLOS = "Perfis de exemplo, só para testar o beta. No site de verdade, aqui aparecem pessoas reais.";
 
 function naoAchei() {
@@ -1668,6 +1710,7 @@ function pgExplorar() {
 function relevancia(q) { return (a, b) => Number(!a.busca.startsWith(q)) - Number(!b.busca.startsWith(q)) || b.ano - a.ano; }
 function resultadosExplorar() {
   const f = UI.explorar;
+  if (f.q !== LIMITES.__q) { LIMITES.__q = f.q; LIMITES.busca = POR_VEZ; LIMITES.explorar = POR_VEZ; }
   const q = normalizar(f.q);
   let obras = C.obras.filter((o) => (f.formato === "todos" || o.formato === f.formato) && (f.franquia === "todas" || o.franquia === f.franquia));
   if (f.status !== "todos") obras = obras.filter((o) => { const s = estObra(o.id)?.status; return f.status === "nao" ? !s : s === f.status; });
@@ -1676,9 +1719,9 @@ function resultadosExplorar() {
     const pers = C.personagens.filter((p) => p.busca.some((b) => b.includes(q))).slice(0, 12);
     const unis = C.universos.filter((u) => u.busca.includes(q)).slice(0, 8);
     const pess = [...C.pessoas.values()].filter((p) => normalizar(p.nome).includes(q)).slice(0, 12);
-    if (!obras.length && !pers.length && !unis.length && !pess.length) return `<div class="q vazio"><p>Nada com “${esc(f.q)}” por aqui ainda.</p><p class="mudo">O catálogo do beta ainda é pequeno. Tente outro nome ou em inglês.</p></div>`;
+    if (!obras.length && !pers.length && !unis.length && !pess.length) return `<div class="q vazio"><p>Nada com “${esc(f.q)}” por aqui ainda.</p><p class="mudo">Tente o nome em inglês, ou escreva menos letras.</p></div>`;
     return (pers.length ? `<h2 class="qgrupo">Personagens</h2><div class="pgrade" style="margin:10px 0 22px">${pers.map(cardPersonagem).join("")}</div>` : "")
-      + (obras.length ? `<h2 class="qgrupo">Obras</h2><div class="grade" style="margin:10px 0 22px">${obras.map((o) => cardObra(o)).join("")}</div>` : "")
+      + (obras.length ? `<h2 class="qgrupo">Obras</h2>${gradeLimitada(obras, "busca")}` : "")
       + (unis.length ? `<h2 class="qgrupo">Universos</h2><div class="chips" style="margin:10px 0 22px">${unis.map((u) => uchip(u)).join("")}</div>` : "")
       + (pess.length ? `<h2 class="qgrupo">Pessoas</h2><div class="chips" style="margin:10px 0 22px">${pess.map((p) => `<a class="chip" href="#pessoa-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>` : "");
   }
@@ -1690,7 +1733,7 @@ function resultadosExplorar() {
   }[f.ordem] || ((a, b) => b.ano - a.ano);
   obras.sort(ord);
   if (!obras.length) return `<div class="q vazio"><p>Nenhuma obra com esses filtros.</p></div>`;
-  return `<p class="resultado-n">${plural(obras.length, "obra", "obras")}</p><div class="grade">${obras.map((o) => cardObra(o)).join("")}</div>`;
+  return `<p class="resultado-n">${plural(obras.length, "obra", "obras")}</p>${gradeLimitada(obras, "explorar")}`;
 }
 
 // ---------- Personagens, universos e ranking ----------
@@ -1914,7 +1957,7 @@ function pgUniverso(id) {
       <h1 class="h1">${esc(u.nome)}</h1><p class="faixa-linha">${esc(u.desc)}</p></div></div></header>
     <section class="q bloco" style="margin-top:20px"><div class="sec-h" style="margin:0"><h2 class="h2">Seu progresso</h2><span class="h2 num">${g.pct}%</span></div>${barra(g.pct)}
       <div class="acoes"><span class="mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")} deste universo.</span><button class="bt bt--mini" data-acao="partilhar-uni" data-u="${esc(id)}">${ic("partilhar")}Compartilhar</button></div></section>
-    ${secao("Obras em ordem de lançamento", `<div class="grade">${u.obras.map((o) => cardObra(o)).join("")}</div>`)}
+    ${secao("Obras em ordem de lançamento", gradeLimitada(u.obras, "uni-" + id))}
     ${vers.length ? secao("Personagens neste universo", `<div class="chips">${vers.map((p) => `<a class="chip" href="#personagem-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>`) : ""}`;
 }
 function pgPessoa(id) {
@@ -2062,7 +2105,7 @@ function pgSobre() {
   return `<h1 class="h1" style="margin-top:8px">Sobre o beta</h1>
     <div class="prosa" style="margin-top:14px;font-size:17px">
       <p>A ${NOME_DO_SITE} é um diário só de heróis: filmes, séries, desenhos e HQs da Marvel, da DC e de outras editoras, tudo num lugar só. O foco são os personagens: cada versão de cada personagem tem página, nota e lista de aparições.</p>
-      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade é de exemplo e o catálogo ainda é pequeno.</p>
+      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade ainda é de exemplo.</p>
     </div>
     ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres do TMDB e capas do Comic Vine, com os avisos de crédito que eles pedem.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
     ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>Os pôsteres de filmes, séries e desenhos vêm do <a href="https://www.themoviedb.org/">TMDB</a>, e as capas de HQ vêm do <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Cada HQ usa a capa da primeira edição da história. Onde não existe capa, a ${NOME_DO_SITE} desenha uma.</p></div>`)}
@@ -2119,6 +2162,8 @@ function confirmar(titulo, texto, rotulo, fn, perigo = true) {
 let MODO_BUSCA = "ir";
 function abrirBusca(modo) {
   MODO_BUSCA = modo;
+  // Procurar sem o catálogo inteiro acharia pouca coisa: busca ele agora.
+  if (!C.extraCarregado) carregarExtra().then(() => { const c = $("#qb-res"); if (c) c.innerHTML = resultadosBusca($("#qb")?.value || ""); }).catch(() => {});
   const titulo = modo === "registrar" ? "O que você viu ou leu?" : modo.startsWith("lista:") ? "Adicionar à lista" : "Buscar";
   abrirModal(titulo, `<div class="busca-g">${ic("busca")}<input class="entrada" id="qb" type="search" autocomplete="off" placeholder="${modo === "ir" ? "Obra, personagem, universo ou pessoa" : "Filme, série, desenho ou HQ"}" aria-label="Buscar" data-foco></div><div class="qres" id="qb-res">${resultadosBusca("")}</div>`);
 }
@@ -2149,7 +2194,7 @@ function resultadosBusca(texto) {
     if (unis.length) h += `<p class="qgrupo">Universos</p>${unis.map((u) => `<a class="qr" href="#universo-${esc(u.id)}"><span class="emb" style="--av:${u.cor}" aria-hidden="true">${ic("globo")}</span><span><span class="qr-t" style="display:block">${esc(u.nome)}</span><span class="qr-m">${esc(u.midia)} · ${esc(u.anos)}</span></span></a>`).join("")}`;
     if (pess.length) h += `<p class="qgrupo">Pessoas</p>${pess.map((p) => `<a class="qr" href="#pessoa-${esc(p.id)}">${emblema({ nome: p.nome }, "", "#6b6475")}<span><span class="qr-t" style="display:block">${esc(p.nome)}</span><span class="qr-m">${plural(p.creditos.length, "crédito", "créditos")}</span></span></a>`).join("")}`;
   }
-  return h || `<p class="mudo">Nada com “${esc(texto)}” ainda. O catálogo do beta é pequeno: tente outro nome ou em inglês.</p>`;
+  return h || `<p class="mudo">Nada com “${esc(texto)}” ainda. Tente o nome em inglês, ou escreva menos letras.</p>`;
 }
 
 // ---------- Registrar no diário ----------
@@ -2705,9 +2750,12 @@ async function ponte(params) {
   return r.json();
 }
 async function tmdbInfo(o) {
+  // A maioria das obras já vem do catálogo com o id e o caminho do pôster.
+  if (o.tmdb && o.tmdb.i && o.tmdb.p) return { id: Number(o.tmdb.i), p: o.tmdb.p, b: "" };
   const c = tmdbCache();
   const k = o.id + "|" + LINGUA_TMDB;
   if (c[k] !== undefined) return c[k];
+  if (!o.tmdb || !o.tmdb.q) return null;
   const j = await ponte({ acao: "busca", tipo: o.tmdb.t === "tv" ? "tv" : "movie", q: o.tmdb.q, y: String(o.tmdb.y), lang: LINGUA_TMDB });
   const info = j && j.id ? { id: Number(j.id), p: caminhoCartaz(j.p), b: caminhoCartaz(j.b) } : null;
   c[k] = info;
@@ -2764,6 +2812,7 @@ function hidratarImagens(raiz = document) {
   for (const img of $$("img[data-tmdb]", raiz)) {
     const o = C.O.get(img.dataset.tmdb);
     if (!o || !o.tmdb) continue;
+    if (o.tmdb.p) { mostrarImg(img, "https://image.tmdb.org/t/p/w342" + o.tmdb.p); continue; }
     const c = tmdbCache()[o.id + "|" + LINGUA_TMDB];
     if (c !== undefined) { if (c && c.p) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + c.p); continue; }
     agendar(async () => { const info = await tmdbInfo(o); if (info && info.p && img.isConnected) mostrarImg(img, "https://image.tmdb.org/t/p/w342" + info.p); });
@@ -2803,6 +2852,20 @@ function chaveFoco(el) {
   const ds = ["acao", "obra", "s", "n", "alvo", "t", "e", "i", "p", "u", "k", "v", "lista", "log", "d"].filter((k) => el.dataset && el.dataset[k] != null);
   return ds.length ? ds.map((k) => `[data-${k}="${CSS.escape(el.dataset[k])}"]`).join("") : null;
 }
+// Páginas que só fazem sentido com o catálogo inteiro na mão.
+const ROTAS_CATALOGO = new Set(["explorar", "universos", "ranking"]);
+function faltaCatalogo(rota) {
+  if (C.extraCarregado) return false;
+  if (ROTAS_CATALOGO.has(rota.nome)) return true;
+  if (rota.nome === "obra") return !C.O.has(rota.arg);
+  if (rota.nome === "universo") return !C.U.has(rota.arg);
+  return false;
+}
+function pedirCatalogo() {
+  carregarExtra().then(() => desenhar({ manterScroll: true })).catch(() => {
+    $$("#conteudo .carregando-cat").forEach((el) => { el.textContent = "Não consegui carregar o resto do catálogo. Tente recarregar a página."; });
+  });
+}
 function desenhar({ manterScroll = false } = {}) {
   if (!C.obras.length) return;
   const rota = rotaAtual();
@@ -2816,6 +2879,10 @@ function desenhar({ manterScroll = false } = {}) {
   $$(".nav a, .abas a").forEach((a) => { if (a.dataset.nav === aba) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   document.title = PAG.titulo ? `${PAG.titulo} · ${NOME_DO_SITE}` : `${NOME_DO_SITE} · diário de heróis`;
   if (rota.nome === "jogo") desenharJogo(false, false);
+  if (faltaCatalogo(rota)) {
+    main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
+    pedirCatalogo();
+  }
   hidratarImagens(main);
   atualizarArmazem();
   atualizarContagem();
@@ -2867,6 +2934,7 @@ async function copiar(texto, onde) {
 }
 const ACOES = {
   pular: () => $("#conteudo").focus(),
+  mais: (el) => { const k = el.dataset.k; LIMITES[k] = limiteDe(k) + POR_VEZ; desenhar({ manterScroll: true }); },
   recarregar: () => iniciar(),
   registrar: () => abrirBusca("registrar"),
   buscar: () => abrirBusca("ir"),
