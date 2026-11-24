@@ -35,7 +35,7 @@ function bombear() {
   }
 }
 function mostrarImg(img, url) {
-  img.onload = () => { img.hidden = false; };
+  img.onload = () => { img.classList.add("ok"); };
   img.onerror = () => img.remove();
   img.src = url;
 }

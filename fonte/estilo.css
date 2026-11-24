@@ -697,3 +697,7 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.45; }
   .splash .acoes { justify-content: center; }
   .leque { width: 100%; }
 }
+.capa-img, .faixa-bg { opacity: 0; transition: opacity .25s; }
+.capa-img.ok { opacity: 1; }
+.faixa-bg.ok { opacity: .35; }
+.capa-img:not([src]), .faixa-bg:not([src]) { display: none; }

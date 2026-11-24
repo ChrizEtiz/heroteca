@@ -15,7 +15,7 @@ function capa(o, { status = true } = {}) {
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
   const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
-  const img = TMDB.ativo && o.tmdb ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy" hidden>` : "";
+  const img = TMDB.ativo && o.tmdb ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">` : "";
   return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor};--b:${BURSTS[(h >>> 4) % BURSTS.length]}">`
     + `<span class="capa-fundo"></span>`
     + `<span class="capa-topo"><span class="capa-selo">${esc(FRANQ_CURTA[o.franquia] || o.franquia)}</span><span class="capa-ano">${esc(o.ano)}</span></span>`

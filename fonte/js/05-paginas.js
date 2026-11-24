@@ -191,7 +191,7 @@ function pgObra(id) {
   const med = mediaObra(o.id);
   const breve = emBreve(o);
   const linha = [o.original !== o.titulo ? o.original : "", o.periodo || String(o.ano), o.creditos || ""].filter(Boolean).map(esc).join(" · ");
-  const faixa = `<header class="faixa" style="--c1:${u.cor}">${TMDB.ativo && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="" hidden>` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
+  const faixa = `<header class="faixa" style="--c1:${u.cor}">${TMDB.ativo && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
       <div class="chips"><span class="chip">${esc(FORMATO[o.formato].nome)}</span>${uchip(u)}</div>
       <h1 class="h1">${esc(o.titulo)}</h1><p class="faixa-linha">${linha}</p>
       ${breve ? `<p class="nota-com">${o.data ? `Estreia em ${dataLonga(o.data)} · faltam ${plural(diasEntre(HOJE, o.data), "dia", "dias")}` : `Previsto para ${o.ano}`}</p>`
