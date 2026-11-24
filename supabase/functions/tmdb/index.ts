@@ -3,7 +3,16 @@
 // GET ?acao=onde&tipo=movie|tv&id=123&pais=BR               -> { streaming: [], aluguel: [], compra: [] }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const CHAVE = Deno.env.get("TMDB_TOKEN") ?? "";
+// A chave vem do segredo da função ou, se não houver, da tabela trancada "segredos" (só o servidor lê).
+let CHAVE = Deno.env.get("TMDB_TOKEN") ?? "";
+async function carregarChave() {
+  if (CHAVE) return CHAVE;
+  const url = Deno.env.get("SUPABASE_URL"), srv = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !srv) return "";
+  const r = await fetch(`${url}/rest/v1/segredos?nome=eq.TMDB_TOKEN&select=valor`, { headers: { apikey: srv, Authorization: `Bearer ${srv}` } });
+  if (r.ok) { const j = await r.json(); CHAVE = (j?.[0]?.valor ?? "").trim(); }
+  return CHAVE;
+}
 const LINGUAS = new Set(["pt-BR", "en-US"]);
 const PAISES = new Set(["BR", "US", "PT", "GB", "CA", "MX", "AR"]);
 
@@ -37,7 +46,7 @@ Deno.serve(async (req: Request) => {
   const h = cors(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
   if (req.method !== "GET") return resposta({ erro: "metodo" }, 405, h);
-  if (!CHAVE) return resposta({ erro: "sem-chave" }, 503, h);
+  if (!(await carregarChave())) return resposta({ erro: "sem-chave" }, 503, h);
   const p = new URL(req.url).searchParams;
   const tipo = p.get("tipo") === "tv" ? "tv" : "movie";
   try {
