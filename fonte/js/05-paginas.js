@@ -232,6 +232,7 @@ function pgObra(id) {
   const resenhas = todasResenhas(o.id);
   const principal = `<div class="obra-princ" style="display:grid;gap:22px">
       ${o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : ""}
+      ${o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : ""}
       ${blocoProgresso(o, e)}
       ${o.elenco.length ? `<section class="q bloco"><h2 class="h2">${o.formato === "hq" ? "Personagens" : "Personagens e elenco"}</h2><div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>
         ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>`

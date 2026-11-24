@@ -15,8 +15,10 @@ function capa(o, { status = true } = {}) {
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
   const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
-  const img = !CAPAS_ONLINE ? "" : o.tmdb
-    ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
+  // A capa vem pronta quando o catálogo já traz o caminho; senão, é buscada depois.
+  const img = !CAPAS_ONLINE ? ""
+    : o.cv && o.cv.p ? `<img class="capa-img" data-cv="${esc(CAPA_CV + o.cv.p)}" alt="" loading="lazy">`
+    : o.tmdb ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
     : `<img class="capa-img" data-hq="${esc(o.id)}" alt="" loading="lazy">`;
   return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor}">`
     + `<span class="capa-fundo"></span>`

@@ -132,8 +132,9 @@ const FORMATO = {
 };
 const PAPEL = { protagonista: "Protagonista", antagonista: "Antagonista", coadjuvante: "Coadjuvante", participacao: "Participação" };
 const ORDEM_PAPEL = { protagonista: 0, antagonista: 1, coadjuvante: 2, participacao: 3 };
-const COR_FRANQ = { Marvel: "#c8364f", DC: "#3a6fe0", Image: "#15968f", "Dark Horse": "#6b5fa8", TMNT: "#3f9a4a", "Cartoon Network": "#49a83a" };
-const FRANQ_CURTA = { Marvel: "MARVEL", DC: "DC", Image: "IMAGE", TMNT: "TMNT", "Cartoon Network": "CN", "Dark Horse": "DARK HORSE" };
+const COR_FRANQ = { Marvel: "#c8364f", DC: "#3a6fe0", Image: "#15968f", "Dark Horse": "#6b5fa8", TMNT: "#3f9a4a", "Cartoon Network": "#49a83a" , Tokusatsu: "#e8673a", "Outras editoras": "#c09a4a", Outros: "#7f8aa8" };
+const CAPA_CV = "https://comicvine.gamespot.com/a/uploads/scale_large/";
+const FRANQ_CURTA = { Marvel: "MARVEL", DC: "DC", Image: "IMAGE", TMNT: "TMNT", "Cartoon Network": "CN", "Dark Horse": "DARK HORSE", Tokusatsu: "TOKU", "Outras editoras": "INDIE", Outros: "HERÓI" };
 const STATUS = ["quero", "vendo", "terminei", "abandonei"];
 const ICONE_STATUS = { quero: "marcador", vendo: "play", terminei: "check", abandonei: "pare" };
 function nomeStatus(s, o) {

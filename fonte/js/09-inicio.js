@@ -51,6 +51,7 @@ function desenhar({ manterScroll = false } = {}) {
   }
   hidratarImagens(main);
   hidratarElenco(main);
+  hidratarSagas(main);
   atualizarArmazem();
   atualizarContagem();
   if (manterScroll) {

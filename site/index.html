@@ -1016,8 +1016,9 @@ const FORMATO = {
 };
 const PAPEL = { protagonista: "Protagonista", antagonista: "Antagonista", coadjuvante: "Coadjuvante", participacao: "Participação" };
 const ORDEM_PAPEL = { protagonista: 0, antagonista: 1, coadjuvante: 2, participacao: 3 };
-const COR_FRANQ = { Marvel: "#c8364f", DC: "#3a6fe0", Image: "#15968f", "Dark Horse": "#6b5fa8", TMNT: "#3f9a4a", "Cartoon Network": "#49a83a" };
-const FRANQ_CURTA = { Marvel: "MARVEL", DC: "DC", Image: "IMAGE", TMNT: "TMNT", "Cartoon Network": "CN", "Dark Horse": "DARK HORSE" };
+const COR_FRANQ = { Marvel: "#c8364f", DC: "#3a6fe0", Image: "#15968f", "Dark Horse": "#6b5fa8", TMNT: "#3f9a4a", "Cartoon Network": "#49a83a" , Tokusatsu: "#e8673a", "Outras editoras": "#c09a4a", Outros: "#7f8aa8" };
+const CAPA_CV = "https://comicvine.gamespot.com/a/uploads/scale_large/";
+const FRANQ_CURTA = { Marvel: "MARVEL", DC: "DC", Image: "IMAGE", TMNT: "TMNT", "Cartoon Network": "CN", "Dark Horse": "DARK HORSE", Tokusatsu: "TOKU", "Outras editoras": "INDIE", Outros: "HERÓI" };
 const STATUS = ["quero", "vendo", "terminei", "abandonei"];
 const ICONE_STATUS = { quero: "marcador", vendo: "play", terminei: "check", abandonei: "pare" };
 function nomeStatus(s, o) {
@@ -1583,8 +1584,10 @@ function capa(o, { status = true } = {}) {
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
   const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
-  const img = !CAPAS_ONLINE ? "" : o.tmdb
-    ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
+  // A capa vem pronta quando o catálogo já traz o caminho; senão, é buscada depois.
+  const img = !CAPAS_ONLINE ? ""
+    : o.cv && o.cv.p ? `<img class="capa-img" data-cv="${esc(CAPA_CV + o.cv.p)}" alt="" loading="lazy">`
+    : o.tmdb ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
     : `<img class="capa-img" data-hq="${esc(o.id)}" alt="" loading="lazy">`;
   return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor}">`
     + `<span class="capa-fundo"></span>`
@@ -1945,6 +1948,7 @@ function pgObra(id) {
   const resenhas = todasResenhas(o.id);
   const principal = `<div class="obra-princ" style="display:grid;gap:22px">
       ${o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : ""}
+      ${o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : ""}
       ${blocoProgresso(o, e)}
       ${o.elenco.length ? `<section class="q bloco"><h2 class="h2">${o.formato === "hq" ? "Personagens" : "Personagens e elenco"}</h2><div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>
         ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>`
@@ -2997,6 +3001,8 @@ function mostrarImg(img, url) {
 }
 function hidratarImagens(raiz = document) {
   if (!CAPAS_ONLINE || !raiz) return;
+  // Capas de saga: o endereço já veio no catálogo.
+  for (const img of $$("img[data-cv]", raiz)) { const u = img.dataset.cv; delete img.dataset.cv; mostrarImg(img, u); }
   const hqs = $$("img[data-hq]", raiz);
   if (hqs.length) {
     capasHQAgora().then((m) => {
@@ -3178,6 +3184,28 @@ function hidratarElenco(raiz = document) {
   }
 }
 
+// ---------- sinopse das sagas de quadrinho ----------
+const SAGAS = new Map();
+function resumoDaSaga(id) {
+  if (SAGAS.has(id)) return SAGAS.get(id);
+  const p = doSupabase("sagas", { select: "resumo,edicao", id: "eq." + id }).then((r) => r[0] || null).catch(() => null);
+  SAGAS.set(id, p);
+  return p;
+}
+function hidratarSagas(raiz = document) {
+  for (const el of $$("[data-saga]", raiz)) {
+    const o = C.O.get(el.dataset.saga);
+    if (!o || !o.cv) continue;
+    resumoDaSaga(o.cv.i).then((r) => {
+      if (!el.isConnected) return;
+      const partes = [];
+      if (r && r.resumo) partes.push(`<p>${esc(r.resumo)}</p>`);
+      if (r && r.edicao) partes.push(`<p class="mudo mini">Começa na edição #${esc(r.edicao)}.</p>`);
+      el.innerHTML = partes.join("") || `<p class="mudo">Sem sinopse no Comic Vine.</p>`;
+    });
+  }
+}
+
 // ================= Rotas =================
 const ROTAS = { inicio: pgInicio, explorar: pgExplorar, personagens: pgPersonagens, universos: pgUniversos, ranking: pgRanking, jogo: pgJogo, diario: pgDiario, listas: pgListas, perfil: pgPerfil, sobre: pgSobre };
 const PREFIXOS = [["obra-", pgObra], ["personagem-", pgPersonagem], ["universo-", pgUniverso], ["pessoa-", pgPessoa], ["lista-", pgLista], ["usuario-", pgUsuario]];
@@ -3231,6 +3259,7 @@ function desenhar({ manterScroll = false } = {}) {
   }
   hidratarImagens(main);
   hidratarElenco(main);
+  hidratarSagas(main);
   atualizarArmazem();
   atualizarContagem();
   if (manterScroll) {

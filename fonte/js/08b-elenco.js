@@ -144,3 +144,25 @@ function hidratarElenco(raiz = document) {
     });
   }
 }
+
+// ---------- sinopse das sagas de quadrinho ----------
+const SAGAS = new Map();
+function resumoDaSaga(id) {
+  if (SAGAS.has(id)) return SAGAS.get(id);
+  const p = doSupabase("sagas", { select: "resumo,edicao", id: "eq." + id }).then((r) => r[0] || null).catch(() => null);
+  SAGAS.set(id, p);
+  return p;
+}
+function hidratarSagas(raiz = document) {
+  for (const el of $$("[data-saga]", raiz)) {
+    const o = C.O.get(el.dataset.saga);
+    if (!o || !o.cv) continue;
+    resumoDaSaga(o.cv.i).then((r) => {
+      if (!el.isConnected) return;
+      const partes = [];
+      if (r && r.resumo) partes.push(`<p>${esc(r.resumo)}</p>`);
+      if (r && r.edicao) partes.push(`<p class="mudo mini">Começa na edição #${esc(r.edicao)}.</p>`);
+      el.innerHTML = partes.join("") || `<p class="mudo">Sem sinopse no Comic Vine.</p>`;
+    });
+  }
+}

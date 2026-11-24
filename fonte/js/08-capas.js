@@ -73,6 +73,8 @@ function mostrarImg(img, url) {
 }
 function hidratarImagens(raiz = document) {
   if (!CAPAS_ONLINE || !raiz) return;
+  // Capas de saga: o endereço já veio no catálogo.
+  for (const img of $$("img[data-cv]", raiz)) { const u = img.dataset.cv; delete img.dataset.cv; mostrarImg(img, u); }
   const hqs = $$("img[data-hq]", raiz);
   if (hqs.length) {
     capasHQAgora().then((m) => {
