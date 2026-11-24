@@ -108,6 +108,12 @@ POR_TITULO = [
 ]
 
 
+# Coisas que entraram de carona pela produtora e não têm nada a ver com herói.
+FORA_DE_PROPOSITO = re.compile(
+    r"\b(star wars|jornada nas estrelas|star trek|transformers: (dark|revenge|age|the last)"
+    r"|my little pony|hora de aventura|adventure time|hello kitty|barbie)\b", re.I)
+
+
 def balde_de(linha):
     titulo = f"{linha[TITULO] or ''} {linha[ORIGINAL] or ''}".lower()
     for padrao, b in POR_TITULO:
@@ -156,11 +162,15 @@ def main():
             if achou:
                 break
         if achou is not None:
-            # a feita à mão fica, e ganha id e pôster
+            # a feita à mão fica, e ganha id, pôster e a fama que o TMDB mede
             achou.setdefault("tmdb", {})
             achou["tmdb"]["i"] = linha[TID]
             if linha[POSTER]:
                 achou["tmdb"]["p"] = linha[POSTER]
+            if linha[VOTOS]:
+                achou["votos"] = linha[VOTOS]
+            if linha[VOTOS] and linha[VOTOS] >= 20 and linha[NOTA]:
+                achou["notaTmdb"] = round(float(linha[NOTA]), 1)
             casadas += 1
         else:
             novas.append((linha, ano))
@@ -169,7 +179,12 @@ def main():
     usados = {}
     ids = {o["id"] for o in obras}
     acrescentadas = []
+    fora = 0
     for linha, ano in novas:
+        titulo_bruto = f"{linha[TITULO] or ''} {linha[ORIGINAL] or ''}"
+        if FORA_DE_PROPOSITO.search(titulo_bruto):
+            fora += 1
+            continue
         b = balde_de(linha)
         usados[b] = usados.get(b, 0) + 1
 
@@ -223,7 +238,7 @@ def main():
     t1 = grava(SAIDA, essencial)
     t2 = grava(SAIDA_EXTRA, acrescentadas)
 
-    print(f"à mão: {len(obras)} obras · casadas com o TMDB: {casadas} · acrescentadas: {len(acrescentadas)}")
+    print(f"à mão: {len(obras)} obras · casadas com o TMDB: {casadas} · acrescentadas: {len(acrescentadas)} · fora de propósito: {fora}")
     print(f"universos: {len(universos)} · registros: {len(essencial) + len(acrescentadas)}")
     print(f"{SAIDA}: {t1/1024:.0f} KB (abre junto com o site)")
     print(f"{SAIDA_EXTRA}: {t2/1024:.0f} KB (só quando precisar)")

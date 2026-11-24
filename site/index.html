@@ -1716,7 +1716,7 @@ function pctObra(o, e) {
 
 // ================= Páginas =================
 const UI = {
-  explorar: { q: "", formato: "todos", franquia: "todas", ordem: "recentes", status: "todos" },
+  explorar: { q: "", formato: "todos", franquia: "todas", ordem: "famosas", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
   diario: { ano: "todos", formato: "todos", tag: "" },
@@ -1833,11 +1833,36 @@ function pgExplorar() {
   return `<h1 class="h1">Explorar</h1>${abasExplorar("explorar")}
     <div class="busca-g">${ic("busca")}<input class="entrada" id="exp-q" type="search" placeholder="Filme, série, HQ, personagem, ator, dublador..." value="${esc(f.q)}" autocomplete="off" aria-label="Buscar"></div>
     <div class="filtros">${chipsFiltro("explorar.formato", FILTRO_FORMATO, f.formato)}${chipsFiltro("explorar.franquia", franqs, f.franquia)}
-      <div class="acoes"><label class="mini">Ordem <select class="sel" data-filtro="explorar.ordem">${[["recentes", "Mais recentes"], ["antigos", "Mais antigas"], ["az", "A–Z"], ["nota", "Melhor nota"]].map(([v, t]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+      <div class="acoes"><label class="mini">Ordem <select class="sel" data-filtro="explorar.ordem">${[["famosas", "Mais conhecidas"], ["recentes", "Mais recentes"], ["antigos", "Mais antigas"], ["az", "A–Z"], ["nota", "Melhor nota"]].map(([v, t]) => `<option value="${v}"${f.ordem === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
       <label class="mini">Status <select class="sel" data-filtro="explorar.status">${[["todos", "Todas"], ["nao", "Ainda não vi"], ["quero", "Quero ver"], ["vendo", "Vendo"], ["terminei", "Terminei"]].map(([v, t]) => `<option value="${v}"${f.status === v ? " selected" : ""}>${t}</option>`).join("")}</select></label></div></div>
     <div id="exp-res">${resultadosExplorar()}</div>`;
 }
-function relevancia(q) { return (a, b) => Number(!a.busca.startsWith(q)) - Number(!b.busca.startsWith(q)) || b.ano - a.ano; }
+// Com milhares de obras, procurar "batman" tem que trazer O Cavaleiro das
+// Trevas antes de Knightfall Parte 1. Dá nota para cada obra e ordena por ela.
+function fama(o) {
+  // 10 votos vale pouco, 10 mil vale muito. Sem teto baixo, senão Vingadores
+  // e um desenho qualquer empatam e o desempate vira só o ano.
+  return Math.log10((o.votos || 0) + 1) * 62 + (o.notaTmdb || 0) * 3;
+}
+function pontoBusca(o, q) {
+  const t = normalizar(o.titulo);
+  let p;
+  if (t === q) p = 1000;
+  else if (t.startsWith(q + " ") || t.startsWith(q + ":")) p = 620;
+  else if (t.startsWith(q)) p = 520;
+  else if (t.includes(" " + q)) p = 300;
+  else if (t.includes(q)) p = 140;
+  else p = 60;                                   // casou pelo título original ou pelo ano
+  if (o.elenco && o.elenco.length) p += 130;     // obra cadastrada à mão, com elenco
+  p += Math.min(200, fama(o));                   // na busca, o nome pesa mais que a fama
+  p -= Math.min(90, Math.max(0, t.length - q.length) * 0.7);  // título enxuto ganha
+  return p;
+}
+function relevancia(q) {
+  const cache = new Map();
+  const nota = (o) => { let v = cache.get(o.id); if (v === undefined) { v = pontoBusca(o, q); cache.set(o.id, v); } return v; };
+  return (a, b) => nota(b) - nota(a) || b.ano - a.ano;
+}
 function resultadosExplorar() {
   const f = UI.explorar;
   if (f.q !== LIMITES.__q) { LIMITES.__q = f.q; LIMITES.busca = POR_VEZ; LIMITES.explorar = POR_VEZ; }
@@ -1856,11 +1881,12 @@ function resultadosExplorar() {
       + (pess.length ? `<h2 class="qgrupo">Pessoas</h2><div class="chips" style="margin:10px 0 22px">${pess.map((p) => `<a class="chip" href="#pessoa-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>` : "");
   }
   const ord = {
+    famosas: (a, b) => (fama(b) + (b.elenco.length ? 150 : 0)) - (fama(a) + (a.elenco.length ? 150 : 0)) || b.ano - a.ano,
     recentes: (a, b) => b.ano - a.ano || a.titulo.localeCompare(b.titulo, "pt-BR"),
     antigos: (a, b) => a.ano - b.ano || a.titulo.localeCompare(b.titulo, "pt-BR"),
     az: (a, b) => a.titulo.localeCompare(b.titulo, "pt-BR"),
     nota: (a, b) => mediaObra(b.id).m - mediaObra(a.id).m || b.ano - a.ano,
-  }[f.ordem] || ((a, b) => b.ano - a.ano);
+  }[f.ordem] || ((a, b) => fama(b) - fama(a));
   obras.sort(ord);
   if (!obras.length) return `<div class="q vazio"><p>Nenhuma obra com esses filtros.</p></div>`;
   return `<p class="resultado-n">${plural(obras.length, "obra", "obras")}</p>${gradeLimitada(obras, "explorar")}`;
