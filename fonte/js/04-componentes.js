@@ -18,7 +18,7 @@ function capa(o, { status = true } = {}) {
   const img = !CAPAS_ONLINE ? "" : o.tmdb
     ? `<img class="capa-img" data-tmdb="${esc(o.id)}" alt="" loading="lazy">`
     : `<img class="capa-img" data-hq="${esc(o.id)}" alt="" loading="lazy">`;
-  return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor};--b:${BURSTS[(h >>> 4) % BURSTS.length]}">`
+  return `<span class="capa capa--v${v} ${tam} ${longo}" style="--c1:${u.cor}">`
     + `<span class="capa-fundo"></span>`
     + `<span class="capa-topo"><span class="capa-selo">${esc(FRANQ_CURTA[o.franquia] || o.franquia)}</span><span class="capa-ano">${esc(o.ano)}</span></span>`
     + `<span class="capa-tipo">${esc(FORMATO[o.formato].curto)}</span>`

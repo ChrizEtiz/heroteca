@@ -32,7 +32,7 @@ try:
             pg.wait_for_timeout(250)
             if sel:
                 pg.wait_for_selector(sel, timeout=4000)
-            txt = pg.inner_text("#conteudo")
+            txt = pg.inner_text("#conteudo").lower()
             if "sumiu no multiverso" in txt:
                 erros.append(f"rota {h}: caiu em 'não achei'")
 
@@ -45,7 +45,7 @@ try:
         for r in rotas:
             pg.evaluate(f"location.hash = '{r}'")
             pg.wait_for_timeout(200)
-        if "sumiu no multiverso" not in pg.inner_text("#conteudo"):
+        if "sumiu no multiverso" not in pg.inner_text("#conteudo").lower():
             erros.append("rota inexistente não mostrou a página de erro")
 
         # status, nota, curtir, episódios

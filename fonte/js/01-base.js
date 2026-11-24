@@ -131,9 +131,8 @@ const FORMATO = {
 };
 const PAPEL = { protagonista: "Protagonista", antagonista: "Antagonista", coadjuvante: "Coadjuvante", participacao: "Participação" };
 const ORDEM_PAPEL = { protagonista: 0, antagonista: 1, coadjuvante: 2, participacao: 3 };
-const COR_FRANQ = { Marvel: "#a3125a", DC: "#1f4fc4", Image: "#0d7470", "Dark Horse": "#4b4357", TMNT: "#2e7d32", "Cartoon Network": "#2f8f22" };
+const COR_FRANQ = { Marvel: "#c8364f", DC: "#3a6fe0", Image: "#15968f", "Dark Horse": "#6b5fa8", TMNT: "#3f9a4a", "Cartoon Network": "#49a83a" };
 const FRANQ_CURTA = { Marvel: "MARVEL", DC: "DC", Image: "IMAGE", TMNT: "TMNT", "Cartoon Network": "CN", "Dark Horse": "DARK HORSE" };
-const BURSTS = ["#ffd21f", "#ff5aa8", "#3ec5f0", "#8be04e", "#ff8a1f", "#ffffff"];
 const STATUS = ["quero", "vendo", "terminei", "abandonei"];
 const ICONE_STATUS = { quero: "marcador", vendo: "play", terminei: "check", abandonei: "pare" };
 function nomeStatus(s, o) {
