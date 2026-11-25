@@ -124,11 +124,11 @@ const SVG_ESTRELA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="eo
 
 // ================= Textos fixos =================
 const FORMATO = {
-  filme: { nome: "Filme", plural: "Filmes", curto: "FILME" },
-  serie: { nome: "Série", plural: "Séries", curto: "SÉRIE" },
-  desenho: { nome: "Desenho", plural: "Desenhos", curto: "DESENHO" },
-  animacao: { nome: "Filme animado", plural: "Filmes animados", curto: "ANIMAÇÃO" },
-  hq: { nome: "HQ", plural: "HQs", curto: "HQ" },
+  filme: { nome: "Filme", plural: "Filmes", curto: "FILME", ordem: 0 },
+  serie: { nome: "Série", plural: "Séries", curto: "SÉRIE", ordem: 1 },
+  desenho: { nome: "Desenho", plural: "Desenhos", curto: "DESENHO", ordem: 2 },
+  animacao: { nome: "Filme animado", plural: "Filmes animados", curto: "ANIMAÇÃO", ordem: 3 },
+  hq: { nome: "HQ", plural: "HQs", curto: "HQ", ordem: 4 },
 };
 const PAPEL = { protagonista: "Protagonista", antagonista: "Antagonista", coadjuvante: "Coadjuvante", participacao: "Participação" };
 const ORDEM_PAPEL = { protagonista: 0, antagonista: 1, coadjuvante: 2, participacao: 3 };

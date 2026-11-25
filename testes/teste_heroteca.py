@@ -133,6 +133,21 @@ try:
         pg.click('.chave-bt >> nth=2')              # aba Versões
         pg.wait_for_selector(".versao", timeout=8000)
         pg.click('[data-acao="versao-mais"] >> nth=0')
+        # mural: agrupamento e dica
+        pg.click('.chave-bt >> nth=0')
+        pg.wait_for_selector(".agrupar select", timeout=8000)
+        if pg.locator(".mural-grupo").count() < 2:
+            erros.append("o mural não agrupou por formato")
+        pg.select_option(".agrupar select", "decada")
+        pg.wait_for_timeout(500)
+        if pg.locator(".mural-grupo").count() < 2:
+            erros.append("o mural não agrupou por década")
+        pg.select_option(".agrupar select", "nenhum")
+        pg.wait_for_timeout(500)
+        if pg.locator(".mural-grupo").count() != 0:
+            erros.append("“Nada” ainda agrupou o mural")
+        if pg.locator(".mural-papel").count():
+            erros.append("a tarja de papel apareceu na aba Protagonista")
         pg.click('[data-acao="partilhar-pers"]')
         pg.wait_for_selector(".cartao-img", timeout=8000)
         if FOTOS:

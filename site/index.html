@@ -857,6 +857,48 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
 .pagina { position: relative; }
 .pagina > .comguia { position: relative; z-index: 1; }
 
+/* ================= Dicas ao passar o mouse ================= */
+/* Da Steam: a informação chega sem precisar abrir a página e voltar. */
+.dica {
+  position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none;
+  background: var(--panel-2); border: 1px solid var(--line-forte); border-radius: var(--r-s);
+  padding: 8px 11px; max-width: 280px; display: grid; gap: 3px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55); animation: dica-entra .12s ease-out;
+}
+@keyframes dica-entra { from { opacity: 0; transform: translateY(4px); } }
+.dica[hidden] { display: none; }
+.dica-t { font-weight: 600; font-size: .88rem; line-height: 1.25; }
+.dica-m { font-size: .78rem; color: var(--muted); }
+.dica .dica-st {
+  font-size: .72rem; justify-self: start; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid currentColor; background: none; margin-top: 2px;
+}
+.dica .dica-st.st-quero { color: var(--st-quero); } .dica .dica-st.st-vendo { color: var(--st-vendo); }
+.dica .dica-st.st-terminei { color: var(--st-terminei); } .dica .dica-st.st-abandonei { color: var(--st-abandonei); }
+.dica--cartao { max-width: 260px; }
+@media (hover: none) { .dica { display: none; } }
+
+/* ---------- mural arrumado ---------- */
+/* Título sempre em duas linhas: as fileiras ficam retas. O nome inteiro
+   aparece na dica quando não cabe. */
+.mural-t {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: 2.2em;
+}
+.mural-grupo { margin-bottom: 30px; }
+.mural-grupo > .leg { margin: 0 0 12px; display: flex; align-items: baseline; gap: 10px; }
+.mural-n { font-family: var(--f-body); font-size: .8rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.agrupar {
+  display: inline-flex; align-items: center; gap: 8px; color: var(--muted);
+  font-size: .85rem; margin: -6px 0 16px;
+}
+.agrupar select {
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
+}
+.agrupar select:hover { border-color: var(--line-forte); }
+.capa-st { cursor: help; }
+
 </style>
 </head>
 <body>
@@ -1028,11 +1070,11 @@ const SVG_ESTRELA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="eo
 
 // ================= Textos fixos =================
 const FORMATO = {
-  filme: { nome: "Filme", plural: "Filmes", curto: "FILME" },
-  serie: { nome: "Série", plural: "Séries", curto: "SÉRIE" },
-  desenho: { nome: "Desenho", plural: "Desenhos", curto: "DESENHO" },
-  animacao: { nome: "Filme animado", plural: "Filmes animados", curto: "ANIMAÇÃO" },
-  hq: { nome: "HQ", plural: "HQs", curto: "HQ" },
+  filme: { nome: "Filme", plural: "Filmes", curto: "FILME", ordem: 0 },
+  serie: { nome: "Série", plural: "Séries", curto: "SÉRIE", ordem: 1 },
+  desenho: { nome: "Desenho", plural: "Desenhos", curto: "DESENHO", ordem: 2 },
+  animacao: { nome: "Filme animado", plural: "Filmes animados", curto: "ANIMAÇÃO", ordem: 3 },
+  hq: { nome: "HQ", plural: "HQs", curto: "HQ", ordem: 4 },
 };
 const PAPEL = { protagonista: "Protagonista", antagonista: "Antagonista", coadjuvante: "Coadjuvante", participacao: "Participação" };
 const ORDEM_PAPEL = { protagonista: 0, antagonista: 1, coadjuvante: 2, participacao: 3 };
@@ -1603,7 +1645,9 @@ function capa(o, { status = true } = {}) {
   const tam = len > 22 ? "capa--xl" : len > 12 ? "capa--l" : "";
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
-  const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
+  const st = e && e.status
+    ? `<span class="capa-st st-${e.status}" data-dica="${esc(nomeStatus(e.status, o))}">${ic(ICONE_STATUS[e.status])}</span>`
+    : "";
   // A capa vem pronta quando o catálogo já traz o caminho; senão, é buscada depois.
   const img = !CAPAS_ONLINE ? ""
     : o.cv && o.cv.p ? `<img class="capa-img" data-cv="${esc(CAPA_CV + o.cv.p)}" alt="" loading="lazy">`
@@ -1739,6 +1783,7 @@ const UI = {
   explorar: { q: "", formato: "todos", franquia: "todas", ordem: "famosas", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
+  mural: { agrupar: "formato" },
   obra: { aba: "sobre" },
   universo: { aba: "obras" },
   pessoa: { aba: "atuacao" },
@@ -1784,20 +1829,52 @@ function fichaGuia(p) {
   return partes.join("");
 }
 
-// Uma capa no mural, com título embaixo e uma linha de apoio.
-function itemMural(o, apoio = "", papel = "") {
-  return `<a href="#obra-${esc(o.id)}">${capa(o)}<span class="mural-t">${esc(o.titulo)}</span>`
+// Uma capa no mural. Título em duas linhas no máximo, com reticências; o resto
+// da informação aparece no cartão ao passar o mouse.
+function itemMural(o, papel = "") {
+  return `<a href="#obra-${esc(o.id)}" data-dica-obra="${esc(o.id)}">${capa(o)}`
+    + `<span class="mural-t">${esc(o.titulo)}</span>`
     + `<span class="mural-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].curto)}</span>`
-    + (apoio ? `<span class="mural-papel">${esc(apoio)}</span>` : "")
     + (papel ? `<span class="mural-papel">${papel}</span>` : "")
     + `</a>`;
 }
-function muralLimitado(itens, chave) {
+
+// ---------- agrupar o mural ----------
+const AGRUPAR = [["formato", "Formato"], ["universo", "Universo"], ["decada", "Década"], ["nenhum", "Nada"]];
+function grupoDe(o, modo) {
+  if (modo === "formato") return [FORMATO[o.formato].plural, FORMATO[o.formato].ordem ?? 50];
+  if (modo === "universo") { const u = C.U.get(o.universo); return [u.nome, -(u.obras ? u.obras.length : 0)]; }
+  if (modo === "decada") return o.ano ? [`Anos ${Math.floor(o.ano / 10) * 10}`, -o.ano] : ["Sem data", 9999];
+  return ["", 0];
+}
+function seletorAgrupar() {
+  return `<label class="agrupar">Agrupar por
+    <select data-filtro="mural.agrupar">${AGRUPAR.map(([k, t]) =>
+      `<option value="${k}"${UI.mural.agrupar === k ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></label>`;
+}
+
+// itens: lista de { o, papel }
+function muralLimitado(itens, chave, { agrupavel = true } = {}) {
+  const modo = agrupavel ? UI.mural.agrupar : "nenhum";
   const lim = limiteDe(chave);
   const mostra = itens.slice(0, lim);
   const falta = itens.length - mostra.length;
-  return `<div class="mural">${mostra.join("")}</div>`
-    + (falta > 0 ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>` : "");
+  const maisBt = falta > 0
+    ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>`
+    : "";
+  const desenha = (lista) => `<div class="mural">${lista.map(({ o, papel }) => itemMural(o, papel)).join("")}</div>`;
+
+  if (modo === "nenhum") return desenha(mostra) + maisBt;
+
+  const grupos = new Map();
+  for (const it of mostra) {
+    const [nome, ordem] = grupoDe(it.o, modo);
+    if (!grupos.has(nome)) grupos.set(nome, { ordem, itens: [] });
+    grupos.get(nome).itens.push(it);
+  }
+  const ordenados = [...grupos.entries()].sort((a, b) => a[1].ordem - b[1].ordem || b[1].itens.length - a[1].itens.length);
+  return ordenados.map(([nome, g]) =>
+    `<section class="mural-grupo"><h3 class="leg">${esc(nome)} <span class="mural-n">${g.itens.length}</span></h3>${desenha(g.itens)}</section>`).join("") + maisBt;
 }
 
 // Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
@@ -2075,7 +2152,7 @@ function pgObra(id) {
         : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`);
   } else {
     corpo = (listas.length ? `<h2 class="leg">Está nestas listas</h2><div class="lgrade" style="margin:10px 0 24px">${listas.slice(0, 8).map((l) => cardLista(l, l.autor ? AMIGO.get(l.autor)?.nome : "")).join("")}</div>` : "")
-      + (mesmoU.length ? `<h2 class="leg">Mais de ${esc(u.nome)}</h2><div style="margin-top:10px">${muralLimitado(mesmoU.map((x) => itemMural(x)), "obra-uni-" + u.id)}</div>` : "");
+      + (mesmoU.length ? `<h2 class="leg">Mais de ${esc(u.nome)}</h2><div style="margin-top:10px">${muralLimitado(mesmoU.map((o) => ({ o })), "obra-uni-" + u.id, { agrupavel: false })}</div>` : "");
   }
 
   const fundo = CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : "";
@@ -2213,12 +2290,15 @@ function pgPersonagem(id) {
     lista = `<div class="versoes">${vs.map(cardVersao).join("")}</div>`;
   } else {
     const itens = atual === "protagonista" ? protagoniza : participa;
+    // Na aba Protagonista toda obra diria "protagonista": a tarja só entra
+    // onde ela varia, que é em Participações.
     lista = itens.length
-      ? muralLimitado(itens.map(({ a, o }) => itemMural(o, a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "", papelChip(a.papel))), "pers-" + id + "-" + atual)
+      ? muralLimitado(itens.map(({ a, o }) => ({ o, papel: atual === "protagonista" ? "" : papelChip(a.papel) })), "pers-" + id + "-" + atual)
       : `<p class="mudo">Nada aqui ainda.</p>`;
   }
 
-  return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "personagem.aba", abas[0][0]) : "") + lista
+  const barra_ = (abas.length > 1 ? chaveAbas(abas, "personagem.aba", abas[0][0]) : "") + (atual === "versoes" ? "" : seletorAgrupar());
+  return comGuia(guia, barra_ + lista
     + (elencoCarregado(id) ? "" : `<p class="carregando-cat">Buscando o resto das aparições...</p>`));
 }
 
@@ -2276,7 +2356,7 @@ function pgUniverso(id) {
   const atual = abaAtual(abas, "universo.aba", "obras");
   const corpo = atual === "personagens"
     ? `<div class="pgrade">${vers.map(cardPersonagem).join("")}</div>`
-    : muralLimitado([...u.obras].sort((a, b) => a.ano - b.ano).map((o) => itemMural(o)), "uni-" + id);
+    : muralLimitado([...u.obras].sort((a, b) => a.ano - b.ano).map((o) => ({ o })), "uni-" + id);
 
   return `<div class="brilho" style="--c1:${u.cor}"></div>`
     + comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "universo.aba", "obras") : "") + corpo);
@@ -2306,7 +2386,7 @@ function pgPessoa(id) {
   const cs = porTipo[atual] || [];
   const corpo = muralLimitado(cs.map((c) => {
     const o = C.O.get(c.obra), pp = C.P.get(c.p);
-    return o ? itemMural(o, pp ? pp.nome : "", papelChip(c.papel)) : "";
+    return o ? { o, papel: (pp ? `<span class="mural-papel">${esc(pp.nome)}</span>` : "") + papelChip(c.papel) } : null;
   }).filter(Boolean), "pessoa-" + id + "-" + atual);
 
   return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "pessoa.aba", abas[0][0]) : "") + corpo);
@@ -3362,6 +3442,91 @@ function hidratarSagas(raiz = document) {
   }
 }
 
+// ================= Dicas que aparecem ao passar o mouse =================
+// A ideia é da Steam: dar a informação na hora, sem obrigar a abrir a página e
+// voltar. Dois tamanhos: a dica curta (um selo, um título cortado) e o cartão,
+// que mostra o resumo da obra enquanto a pessoa passa os olhos pelo mural.
+
+let DICA = null;
+let DICA_T = null;
+
+function caixaDica() {
+  if (!DICA) {
+    DICA = document.createElement("div");
+    DICA.className = "dica";
+    DICA.setAttribute("role", "tooltip");
+    DICA.hidden = true;
+    document.body.appendChild(DICA);
+  }
+  return DICA;
+}
+
+function posicionarDica(alvo) {
+  const d = caixaDica();
+  const a = alvo.getBoundingClientRect();
+  const c = d.getBoundingClientRect();
+  const margem = 10;
+  let x = a.left + a.width / 2 - c.width / 2;
+  x = Math.max(margem, Math.min(window.innerWidth - c.width - margem, x));
+  // acima do alvo, a não ser que não caiba
+  let y = a.top - c.height - 9;
+  d.classList.toggle("dica--baixo", y < 64);
+  if (y < 64) y = a.bottom + 9;
+  d.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
+
+function mostrarDica(alvo, html) {
+  const d = caixaDica();
+  d.innerHTML = html;
+  d.hidden = false;
+  posicionarDica(alvo);
+}
+function esconderDica() {
+  clearTimeout(DICA_T);
+  if (DICA) DICA.hidden = true;
+}
+
+// O cartão da obra: o que a pessoa precisa para decidir sem sair do mural.
+function cartaoDica(o) {
+  const e = estObra(o.id) || {};
+  const med = mediaObra(o.id);
+  const u = C.U.get(o.universo);
+  const linhas = [];
+  linhas.push(`<span class="dica-t">${esc(o.titulo)}</span>`);
+  linhas.push(`<span class="dica-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].nome)} · ${esc(u.nome)}</span>`);
+  if (o.original && o.original !== o.titulo) linhas.push(`<span class="dica-m">${esc(o.original)}</span>`);
+  if (e.status) linhas.push(`<span class="dica-st st-${esc(e.status)}">${esc(nomeStatus(e.status, o))}</span>`);
+  if (e.nota) linhas.push(`<span class="dica-m">Sua nota: ${estrelas(e.nota)}</span>`);
+  if (med.n) linhas.push(`<span class="dica-m">Média ${mediaTxt(med.m)} · ${plural(med.n, "nota", "notas")}</span>`);
+  else if (o.notaTmdb) linhas.push(`<span class="dica-m">TMDB ${o.notaTmdb.toFixed(1)}${o.votos ? ` · ${o.votos.toLocaleString("pt-BR")} votos` : ""}</span>`);
+  if (!e.status && !e.nota) linhas.push(`<span class="dica-m mudo">Você ainda não marcou esta.</span>`);
+  return linhas.join("");
+}
+
+function ligarDicas() {
+  const achar = (el) => el && el.closest("[data-dica], [data-dica-obra]");
+  document.addEventListener("mouseover", (ev) => {
+    const alvo = achar(ev.target);
+    if (!alvo || alvo === DICA) return;
+    clearTimeout(DICA_T);
+    DICA_T = setTimeout(() => {
+      const o = alvo.dataset.dicaObra ? C.O.get(alvo.dataset.dicaObra) : null;
+      const html = o ? cartaoDica(o) : `<span class="dica-t">${esc(alvo.dataset.dica)}</span>`;
+      if (html) { caixaDica().classList.toggle("dica--cartao", !!o); mostrarDica(alvo, html); }
+    }, o_atraso(alvo));
+  });
+  document.addEventListener("mouseout", (ev) => { if (achar(ev.target)) esconderDica(); });
+  document.addEventListener("focusin", (ev) => {
+    const alvo = achar(ev.target);
+    if (alvo && alvo.dataset.dica) mostrarDica(alvo, `<span class="dica-t">${esc(alvo.dataset.dica)}</span>`);
+  });
+  document.addEventListener("focusout", esconderDica);
+  window.addEventListener("scroll", esconderDica, { passive: true });
+  window.addEventListener("hashchange", esconderDica);
+}
+// O cartão demora um pouco mais para não piscar enquanto a pessoa passa o mouse.
+const o_atraso = (el) => (el.dataset.dicaObra ? 420 : 240);
+
 // ================= Rotas =================
 const ROTAS = { inicio: pgInicio, explorar: pgExplorar, personagens: pgPersonagens, universos: pgUniversos, ranking: pgRanking, jogo: pgJogo, diario: pgDiario, listas: pgListas, perfil: pgPerfil, sobre: pgSobre };
 const PREFIXOS = [["obra-", pgObra], ["personagem-", pgPersonagem], ["universo-", pgUniverso], ["pessoa-", pgPessoa], ["lista-", pgLista], ["usuario-", pgUsuario]];
@@ -3855,6 +4020,7 @@ async function iniciar() {
   desenhar();
   if (jaIniciou) return;
   jaIniciou = true;
+  ligarDicas();
   setInterval(tique, 1000);
   conectarNuvem();
   usarDownloads();

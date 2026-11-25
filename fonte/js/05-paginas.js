@@ -3,6 +3,7 @@ const UI = {
   explorar: { q: "", formato: "todos", franquia: "todas", ordem: "famosas", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
+  mural: { agrupar: "formato" },
   obra: { aba: "sobre" },
   universo: { aba: "obras" },
   pessoa: { aba: "atuacao" },
@@ -48,20 +49,52 @@ function fichaGuia(p) {
   return partes.join("");
 }
 
-// Uma capa no mural, com título embaixo e uma linha de apoio.
-function itemMural(o, apoio = "", papel = "") {
-  return `<a href="#obra-${esc(o.id)}">${capa(o)}<span class="mural-t">${esc(o.titulo)}</span>`
+// Uma capa no mural. Título em duas linhas no máximo, com reticências; o resto
+// da informação aparece no cartão ao passar o mouse.
+function itemMural(o, papel = "") {
+  return `<a href="#obra-${esc(o.id)}" data-dica-obra="${esc(o.id)}">${capa(o)}`
+    + `<span class="mural-t">${esc(o.titulo)}</span>`
     + `<span class="mural-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].curto)}</span>`
-    + (apoio ? `<span class="mural-papel">${esc(apoio)}</span>` : "")
     + (papel ? `<span class="mural-papel">${papel}</span>` : "")
     + `</a>`;
 }
-function muralLimitado(itens, chave) {
+
+// ---------- agrupar o mural ----------
+const AGRUPAR = [["formato", "Formato"], ["universo", "Universo"], ["decada", "Década"], ["nenhum", "Nada"]];
+function grupoDe(o, modo) {
+  if (modo === "formato") return [FORMATO[o.formato].plural, FORMATO[o.formato].ordem ?? 50];
+  if (modo === "universo") { const u = C.U.get(o.universo); return [u.nome, -(u.obras ? u.obras.length : 0)]; }
+  if (modo === "decada") return o.ano ? [`Anos ${Math.floor(o.ano / 10) * 10}`, -o.ano] : ["Sem data", 9999];
+  return ["", 0];
+}
+function seletorAgrupar() {
+  return `<label class="agrupar">Agrupar por
+    <select data-filtro="mural.agrupar">${AGRUPAR.map(([k, t]) =>
+      `<option value="${k}"${UI.mural.agrupar === k ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></label>`;
+}
+
+// itens: lista de { o, papel }
+function muralLimitado(itens, chave, { agrupavel = true } = {}) {
+  const modo = agrupavel ? UI.mural.agrupar : "nenhum";
   const lim = limiteDe(chave);
   const mostra = itens.slice(0, lim);
   const falta = itens.length - mostra.length;
-  return `<div class="mural">${mostra.join("")}</div>`
-    + (falta > 0 ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>` : "");
+  const maisBt = falta > 0
+    ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>`
+    : "";
+  const desenha = (lista) => `<div class="mural">${lista.map(({ o, papel }) => itemMural(o, papel)).join("")}</div>`;
+
+  if (modo === "nenhum") return desenha(mostra) + maisBt;
+
+  const grupos = new Map();
+  for (const it of mostra) {
+    const [nome, ordem] = grupoDe(it.o, modo);
+    if (!grupos.has(nome)) grupos.set(nome, { ordem, itens: [] });
+    grupos.get(nome).itens.push(it);
+  }
+  const ordenados = [...grupos.entries()].sort((a, b) => a[1].ordem - b[1].ordem || b[1].itens.length - a[1].itens.length);
+  return ordenados.map(([nome, g]) =>
+    `<section class="mural-grupo"><h3 class="leg">${esc(nome)} <span class="mural-n">${g.itens.length}</span></h3>${desenha(g.itens)}</section>`).join("") + maisBt;
 }
 
 // Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
@@ -339,7 +372,7 @@ function pgObra(id) {
         : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`);
   } else {
     corpo = (listas.length ? `<h2 class="leg">Está nestas listas</h2><div class="lgrade" style="margin:10px 0 24px">${listas.slice(0, 8).map((l) => cardLista(l, l.autor ? AMIGO.get(l.autor)?.nome : "")).join("")}</div>` : "")
-      + (mesmoU.length ? `<h2 class="leg">Mais de ${esc(u.nome)}</h2><div style="margin-top:10px">${muralLimitado(mesmoU.map((x) => itemMural(x)), "obra-uni-" + u.id)}</div>` : "");
+      + (mesmoU.length ? `<h2 class="leg">Mais de ${esc(u.nome)}</h2><div style="margin-top:10px">${muralLimitado(mesmoU.map((o) => ({ o })), "obra-uni-" + u.id, { agrupavel: false })}</div>` : "");
   }
 
   const fundo = CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : "";
@@ -477,12 +510,15 @@ function pgPersonagem(id) {
     lista = `<div class="versoes">${vs.map(cardVersao).join("")}</div>`;
   } else {
     const itens = atual === "protagonista" ? protagoniza : participa;
+    // Na aba Protagonista toda obra diria "protagonista": a tarja só entra
+    // onde ela varia, que é em Participações.
     lista = itens.length
-      ? muralLimitado(itens.map(({ a, o }) => itemMural(o, a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "", papelChip(a.papel))), "pers-" + id + "-" + atual)
+      ? muralLimitado(itens.map(({ a, o }) => ({ o, papel: atual === "protagonista" ? "" : papelChip(a.papel) })), "pers-" + id + "-" + atual)
       : `<p class="mudo">Nada aqui ainda.</p>`;
   }
 
-  return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "personagem.aba", abas[0][0]) : "") + lista
+  const barra_ = (abas.length > 1 ? chaveAbas(abas, "personagem.aba", abas[0][0]) : "") + (atual === "versoes" ? "" : seletorAgrupar());
+  return comGuia(guia, barra_ + lista
     + (elencoCarregado(id) ? "" : `<p class="carregando-cat">Buscando o resto das aparições...</p>`));
 }
 
@@ -540,7 +576,7 @@ function pgUniverso(id) {
   const atual = abaAtual(abas, "universo.aba", "obras");
   const corpo = atual === "personagens"
     ? `<div class="pgrade">${vers.map(cardPersonagem).join("")}</div>`
-    : muralLimitado([...u.obras].sort((a, b) => a.ano - b.ano).map((o) => itemMural(o)), "uni-" + id);
+    : muralLimitado([...u.obras].sort((a, b) => a.ano - b.ano).map((o) => ({ o })), "uni-" + id);
 
   return `<div class="brilho" style="--c1:${u.cor}"></div>`
     + comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "universo.aba", "obras") : "") + corpo);
@@ -570,7 +606,7 @@ function pgPessoa(id) {
   const cs = porTipo[atual] || [];
   const corpo = muralLimitado(cs.map((c) => {
     const o = C.O.get(c.obra), pp = C.P.get(c.p);
-    return o ? itemMural(o, pp ? pp.nome : "", papelChip(c.papel)) : "";
+    return o ? { o, papel: (pp ? `<span class="mural-papel">${esc(pp.nome)}</span>` : "") + papelChip(c.papel) } : null;
   }).filter(Boolean), "pessoa-" + id + "-" + atual);
 
   return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "pessoa.aba", abas[0][0]) : "") + corpo);

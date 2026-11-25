@@ -14,7 +14,9 @@ function capa(o, { status = true } = {}) {
   const tam = len > 22 ? "capa--xl" : len > 12 ? "capa--l" : "";
   const longo = len + sub.length > 34 ? "capa--tit-longo" : "";
   const e = status ? estObra(o.id) : null;
-  const st = e && e.status ? `<span class="capa-st st-${e.status}">${ic(ICONE_STATUS[e.status])}</span>` : "";
+  const st = e && e.status
+    ? `<span class="capa-st st-${e.status}" data-dica="${esc(nomeStatus(e.status, o))}">${ic(ICONE_STATUS[e.status])}</span>`
+    : "";
   // A capa vem pronta quando o catálogo já traz o caminho; senão, é buscada depois.
   const img = !CAPAS_ONLINE ? ""
     : o.cv && o.cv.p ? `<img class="capa-img" data-cv="${esc(CAPA_CV + o.cv.p)}" alt="" loading="lazy">`

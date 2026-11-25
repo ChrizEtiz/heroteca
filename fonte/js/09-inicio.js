@@ -491,6 +491,7 @@ async function iniciar() {
   desenhar();
   if (jaIniciou) return;
   jaIniciou = true;
+  ligarDicas();
   setInterval(tique, 1000);
   conectarNuvem();
   usarDownloads();

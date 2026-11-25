@@ -844,3 +844,45 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
 .brilho .faixa-bg { width: 100%; height: 100%; object-fit: cover; opacity: .16; filter: saturate(.7); }
 .pagina { position: relative; }
 .pagina > .comguia { position: relative; z-index: 1; }
+
+/* ================= Dicas ao passar o mouse ================= */
+/* Da Steam: a informação chega sem precisar abrir a página e voltar. */
+.dica {
+  position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none;
+  background: var(--panel-2); border: 1px solid var(--line-forte); border-radius: var(--r-s);
+  padding: 8px 11px; max-width: 280px; display: grid; gap: 3px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55); animation: dica-entra .12s ease-out;
+}
+@keyframes dica-entra { from { opacity: 0; transform: translateY(4px); } }
+.dica[hidden] { display: none; }
+.dica-t { font-weight: 600; font-size: .88rem; line-height: 1.25; }
+.dica-m { font-size: .78rem; color: var(--muted); }
+.dica .dica-st {
+  font-size: .72rem; justify-self: start; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid currentColor; background: none; margin-top: 2px;
+}
+.dica .dica-st.st-quero { color: var(--st-quero); } .dica .dica-st.st-vendo { color: var(--st-vendo); }
+.dica .dica-st.st-terminei { color: var(--st-terminei); } .dica .dica-st.st-abandonei { color: var(--st-abandonei); }
+.dica--cartao { max-width: 260px; }
+@media (hover: none) { .dica { display: none; } }
+
+/* ---------- mural arrumado ---------- */
+/* Título sempre em duas linhas: as fileiras ficam retas. O nome inteiro
+   aparece na dica quando não cabe. */
+.mural-t {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: 2.2em;
+}
+.mural-grupo { margin-bottom: 30px; }
+.mural-grupo > .leg { margin: 0 0 12px; display: flex; align-items: baseline; gap: 10px; }
+.mural-n { font-family: var(--f-body); font-size: .8rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.agrupar {
+  display: inline-flex; align-items: center; gap: 8px; color: var(--muted);
+  font-size: .85rem; margin: -6px 0 16px;
+}
+.agrupar select {
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
+}
+.agrupar select:hover { border-color: var(--line-forte); }
+.capa-st { cursor: help; }
