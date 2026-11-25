@@ -3,14 +3,66 @@ const UI = {
   explorar: { q: "", formato: "todos", franquia: "todas", ordem: "famosas", status: "todos" },
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
+  obra: { aba: "sobre" },
+  universo: { aba: "obras" },
+  pessoa: { aba: "atuacao" },
   diario: { ano: "todos", formato: "todos", tag: "" },
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
 
-// De que lado da tela fica o guia do personagem. Fica guardado no aparelho.
-let LADO_GUIA = "esq";
-try { if (localStorage.getItem("heroteca-lado") === "dir") LADO_GUIA = "dir"; } catch (e) { /* sem cache */ }
+// ---------- páginas com guia grudado ----------
+// O guia fica parado à esquerda; o conteúdo rola do lado. Vale para
+// personagem, obra, universo, pessoa e lista.
+function comGuia(guia, corpo, { gaveta = true } = {}) {
+  return `<div class="comguia${gaveta ? "" : " comguia--aberto"}"><aside class="guia" id="guia">
+    <button class="guia-puxador" type="button" aria-label="Abrir ou fechar o guia" aria-expanded="false"></button>
+    <div class="guia-rolo">${guia}</div></aside>
+    <div class="comguia-corpo">${corpo}</div></div>`;
+}
+
+// A chave de abas no alto do conteúdo. `chave` é o caminho em UI.
+function chaveAbas(abas, chave, padrao) {
+  const atual = abaAtual(abas, chave, padrao);
+  return `<div class="chave" role="tablist">${abas.map(([k, t]) =>
+    `<button class="chave-bt" role="tab" aria-selected="${atual === k}" data-acao="filtro" data-k="${esc(chave)}" data-v="${esc(k)}">${esc(t)}</button>`).join("")}</div>`;
+}
+function abaAtual(abas, chave, padrao) {
+  const [a, b] = chave.split(".");
+  const v = UI[a] && UI[a][b];
+  return abas.some(([k]) => k === v) ? v : padrao;
+}
+
+// A ficha do personagem no pé do guia: lado, poderes, equipes, apelidos.
+function fichaGuia(p) {
+  const j = p.jogo || {};
+  const partes = [];
+  const linha = (rotulo, conteudo) => partes.push(`<div class="guia-bloco"><span class="h3">${rotulo}</span>${conteudo}</div>`);
+  const chips = (arr) => `<div class="chips">${arr.map((x) => `<span class="chip chip--fino">${esc(x)}</span>`).join("")}</div>`;
+  if (j.lado || j.editora) linha("Ficha", chips([j.lado, j.editora, j.genero].filter(Boolean)));
+  if (j.poder && j.poder.length) linha("Poderes", chips(j.poder));
+  if (j.equipe && j.equipe.length) linha("Equipes", chips(j.equipe));
+  const outros = (p.apelidos || []).filter((a) => a !== p.nome && a !== p.identidade);
+  if (outros.length) linha("Também chamado de", `<p class="guia-linha mudo">${esc(outros.join(", "))}</p>`);
+  if (j.estreia || p.estreia) linha("Estreou em", `<p class="guia-linha mudo">${esc(j.estreia || p.estreia)}</p>`);
+  return partes.join("");
+}
+
+// Uma capa no mural, com título embaixo e uma linha de apoio.
+function itemMural(o, apoio = "", papel = "") {
+  return `<a href="#obra-${esc(o.id)}">${capa(o)}<span class="mural-t">${esc(o.titulo)}</span>`
+    + `<span class="mural-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].curto)}</span>`
+    + (apoio ? `<span class="mural-papel">${esc(apoio)}</span>` : "")
+    + (papel ? `<span class="mural-papel">${papel}</span>` : "")
+    + `</a>`;
+}
+function muralLimitado(itens, chave) {
+  const lim = limiteDe(chave);
+  const mostra = itens.slice(0, lim);
+  const falta = itens.length - mostra.length;
+  return `<div class="mural">${mostra.join("")}</div>`
+    + (falta > 0 ? `<div class="mais-linha"><button class="bt bt--fundo" data-acao="mais" data-k="${esc(chave)}">Mostrar mais ${Math.min(falta, POR_VEZ)} de ${falta}</button></div>` : "");
+}
 
 // Com milhares de obras no catálogo, nenhuma lista aparece inteira de primeira.
 const POR_VEZ = 60;
@@ -51,7 +103,7 @@ function pgInicio() {
       <h1 class="h1">Seu diário de filmes, séries, desenhos e HQs de heróis</h1>
       <p class="splash-sub">Marvel, DC, Invencível, Tartarugas Ninja, Ben 10 e mais, tudo num lugar só. Dê nota para cada obra e para cada versão de cada personagem${nome}.</p>
       <div class="leque">${leque}<a class="balao-splash" href="#lista-todos-os-batmans">Qual Batman é o seu?</a></div>
-      <div class="acoes"><button class="bt bt--amarelo" data-acao="registrar">${ic("mais")}Registrar o que vi</button><a class="bt" href="#jogo">${ic("jogo")}${NOME_DO_JOGO} de hoje</a><a class="bt" href="#explorar">${ic("busca")}Explorar</a></div>
+      <div class="acoes"><button class="bt bt--amarelo" data-acao="registrar">${ic("mais")}Registrar o que vi</button><a class="bt" href="#jogo">${ic("jogo")}Jogo de hoje</a><a class="bt" href="#explorar">${ic("busca")}Explorar</a></div>
     </div></section>
     <div class="dupla">${cardJogoHoje()}${cardEmBreve()}</div>
     ${secaoContinuar()}
@@ -74,7 +126,7 @@ function cardJogoHoje() {
       <div class="acoes"><a class="bt bt--forte" href="#jogo">${ic("jogo")}${n ? "Continuar" : "Jogar agora"}</a></div>`;
   }
   return `<section class="q card-jogo" aria-label="${NOME_DO_JOGO}"><div class="topline"><span class="edicao">Nº ${J.numero}</span><span class="mudo">${seq ? `${ic("fogo")} sequência de ${plural(seq, "dia", "dias")}` : "Jogo diário"}</span></div>
-    <h2 class="logo-jogo">${NOME_DO_JOGO}</h2>${corpo}</section>`;
+    <h2 class="logo-jogo">Jogo do dia</h2>${corpo}</section>`;
 }
 function cardEmBreve() {
   const o = C.obras.filter((x) => emBreve(x) && x.data).sort((a, b) => (a.data < b.data ? -1 : 1))[0];
@@ -234,43 +286,69 @@ function pgObra(id) {
   const e = estObra(o.id) || {};
   const med = mediaObra(o.id);
   const breve = emBreve(o);
-  const linha = [o.original !== o.titulo ? o.original : "", o.periodo || String(o.ano), o.creditos || ""].filter(Boolean).map(esc).join(" · ");
-  const faixa = `<header class="faixa" style="--c1:${u.cor}">${CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : ""}<div class="faixa-in">${capa(o)}<div class="faixa-txt">
-      <div class="chips"><span class="chip">${esc(FORMATO[o.formato].nome)}</span>${uchip(u)}</div>
-      <h1 class="h1">${esc(o.titulo)}</h1><p class="faixa-linha">${linha}</p>
-      ${breve ? `<p class="nota-com">${o.data ? `Estreia em ${dataLonga(o.data)} · faltam ${plural(diasEntre(HOJE, o.data), "dia", "dias")}` : `Previsto para ${o.ano}`}</p>`
-        : med.n ? `<p class="nota-com">${estrelas(Math.round(med.m))} ${mediaTxt(med.m)} <span class="mini">· ${plural(med.n, "nota", "notas")} no beta</span></p>` : ""}
-    </div></div></header>`;
   const fav = R.favoritos.obras.includes(o.id);
   const meus = V.logs.filter((l) => l.obra === o.id).length;
-  const lado = `<aside class="obra-lado"><div class="q bloco">
-      <div class="status-g" role="group" aria-label="Status">${STATUS.map((s) => `<button class="st-bt" data-acao="status" data-obra="${esc(o.id)}" data-s="${s}" aria-pressed="${e.status === s}"${breve && s !== "quero" ? " disabled" : ""}>${ic(ICONE_STATUS[s])}${nomeStatus(s, o)}</button>`).join("")}</div>
-      <div class="nota-linha"><div><span class="h3">Sua nota</span>${avaliador(e.nota || 0, "nota-obra", o.id, "Sua nota para " + o.titulo, { desligado: breve })}</div>
-        <button class="coracao" data-acao="curtir" data-obra="${esc(o.id)}" aria-pressed="${!!e.curtiu}" aria-label="Curti"${breve ? " disabled" : ""}>${ic("coracao", e.curtiu ? "ic--cheio" : "")}</button></div>
-      ${breve ? `<p class="mudo mini">Nota, curtida e registro liberam na estreia. Por enquanto, marque “Quero ver”.</p>` : ""}
-      <button class="bt bt--forte" data-acao="log-abrir" data-obra="${esc(o.id)}"${breve ? " disabled" : ""}>${ic("diario")}Registrar no diário</button>
-      <div class="acoes"><button class="bt bt--mini" data-acao="lista-add" data-obra="${esc(o.id)}">${ic("lista")}Pôr numa lista</button>
-        <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-obra" data-obra="${esc(o.id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Nas 4 favoritas" : "4 favoritas"}</button></div>
-      ${meus ? `<p class="mini"><a href="#diario">Está ${plural(meus, "vez", "vezes")} no seu diário</a></p>` : ""}
-    </div>${ondeVer(o)}</aside>`;
+
+  // ---------- o guia: capa, o que você marcou, e onde assistir ----------
+  const guia = `<div class="guia-retrato guia-retrato--capa">${capa(o, { status: false })}</div>
+    <h1 class="h1 guia-nome">${esc(o.titulo)}</h1>
+    <p class="guia-sub">${esc([o.original !== o.titulo ? o.original : "", o.periodo || String(o.ano)].filter(Boolean).join(" · "))}</p>
+    <div class="chips"><span class="chip">${esc(FORMATO[o.formato].nome)}</span>${uchip(u)}</div>
+    ${breve
+      ? `<p class="guia-linha nota-com">${o.data ? `Estreia em ${dataLonga(o.data)}` : `Previsto para ${o.ano}`}</p>`
+      : med.n ? `<p class="guia-linha nota-com">${estrelas(Math.round(med.m))} ${mediaTxt(med.m)} <span class="mini">· ${plural(med.n, "nota", "notas")}</span></p>` : ""}
+    <div class="status-g" role="group" aria-label="Status">${STATUS.map((st) => `<button class="st-bt" data-acao="status" data-obra="${esc(o.id)}" data-s="${st}" aria-pressed="${e.status === st}"${breve && st !== "quero" ? " disabled" : ""}>${ic(ICONE_STATUS[st])}${nomeStatus(st, o)}</button>`).join("")}</div>
+    <div class="nota-linha"><div><span class="h3">Sua nota</span>${avaliador(e.nota || 0, "nota-obra", o.id, "Sua nota para " + o.titulo, { desligado: breve })}</div>
+      <button class="coracao" data-acao="curtir" data-obra="${esc(o.id)}" aria-pressed="${!!e.curtiu}" aria-label="Curti"${breve ? " disabled" : ""}>${ic("coracao", e.curtiu ? "ic--cheio" : "")}</button></div>
+    ${breve ? `<p class="mudo mini">Nota, curtida e registro liberam na estreia. Por enquanto, marque “Quero ver”.</p>` : ""}
+    <button class="bt bt--forte" data-acao="log-abrir" data-obra="${esc(o.id)}"${breve ? " disabled" : ""}>${ic("diario")}Registrar no diário</button>
+    <div class="guia-acoes"><button class="bt bt--mini" data-acao="lista-add" data-obra="${esc(o.id)}">${ic("lista")}Pôr numa lista</button>
+      <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-obra" data-obra="${esc(o.id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Nas 4 favoritas" : "4 favoritas"}</button></div>
+    ${meus ? `<p class="mini"><a href="#diario">Está ${plural(meus, "vez", "vezes")} no seu diário</a></p>` : ""}
+    ${o.creditos ? `<div class="guia-bloco"><span class="h3">Créditos</span><p class="guia-linha mudo">${esc(o.creditos)}</p></div>` : ""}
+    ${ondeVer(o)}`;
+
+  // ---------- o conteúdo, em abas ----------
   const listas = [...C.L, ...V.listas, ...AMIGOS.flatMap((a) => a.listas)].filter((l) => l.itens.includes(o.id));
   const mesmoU = u.obras.filter((x) => x.id !== o.id);
   const resenhas = todasResenhas(o.id);
-  const principal = `<div class="obra-princ" style="display:grid;gap:22px">
-      ${o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : ""}
-      ${o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : ""}
-      ${blocoProgresso(o, e)}
-      ${o.elenco.length ? `<section class="q bloco"><h2 class="h2">${o.formato === "hq" ? "Personagens" : "Personagens e elenco"}</h2><div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>
-        ${o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada. O resto ainda vai ser cadastrado.</p>` : ""}</section>`
-        : o.tmdb && o.tmdb.i ? `<section class="q bloco"><h2 class="h2">Elenco</h2><div class="elenco" data-elenco="${esc(o.id)}"><p class="mudo">Buscando o elenco...</p></div></section>` : ""}
-      ${o.elenco.length && !breve ? blocoNotasPersonagens(o) : ""}
-      <section class="bloco"><div class="sec-h" style="margin:0"><h2 class="leg">Resenhas</h2>${breve ? "" : `<button class="bt bt--mini" data-acao="log-abrir" data-obra="${esc(o.id)}">${ic("lapis")}Escrever a minha</button>`}</div>
-        ${resenhas.length ? `<p class="sec-nota" style="margin:0">${NOTA_EXEMPLOS}</p><div class="resenhas">${resenhas.map((l) => resenha(l)).join("")}</div>` : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`}</section>
-    </div>`;
-  return faixa + `<div class="obra-corpo">${lado}${principal}</div>`
-    + (listas.length ? secao("Está nestas listas", `<div class="lgrade">${listas.slice(0, 6).map((l) => cardLista(l, l.autor ? AMIGO.get(l.autor)?.nome : "")).join("")}</div>`) : "")
-    + (mesmoU.length ? secao(`Mais de ${u.nome}`, trilho(mesmoU.map((x) => cardObra(x)), { id: "tr-uni" }), { ver: `#universo-${u.id}`, botoes: botoesTrilho("tr-uni") }) : "");
+  const temElenco = o.elenco.length || (o.tmdb && o.tmdb.i);
+  const prog = blocoProgresso(o, e);
+
+  const abas = [["sobre", "Sobre"]];
+  if (temElenco) abas.push(["elenco", o.formato === "hq" ? "Personagens" : "Elenco"]);
+  abas.push(["resenhas", `Resenhas (${resenhas.length})`]);
+  if (mesmoU.length || listas.length) abas.push(["relacionadas", "Relacionadas"]);
+  const atual = abaAtual(abas, "obra.aba", "sobre");
+
+  let corpo = "";
+  if (atual === "sobre") {
+    corpo = (o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : "")
+      + (o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : "")
+      + prog
+      + (o.elenco.length && !breve ? blocoNotasPersonagens(o) : "")
+      + (!o.cv && !prog && !o.elenco.length ? `<p class="mudo">Ainda não há ficha escrita para esta. Dê nota, registre no diário ou veja o elenco.</p>` : "");
+  } else if (atual === "elenco") {
+    corpo = o.elenco.length
+      ? `<div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>`
+        + (o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada.</p>` : "")
+      : `<div class="elenco" data-elenco="${esc(o.id)}"><p class="mudo">Buscando o elenco...</p></div>`;
+  } else if (atual === "resenhas") {
+    corpo = `<div class="sec-h" style="margin:0 0 12px"><h2 class="leg">Resenhas</h2>${breve ? "" : `<button class="bt bt--mini" data-acao="log-abrir" data-obra="${esc(o.id)}">${ic("lapis")}Escrever a minha</button>`}</div>`
+      + (resenhas.length ? `<p class="sec-nota" style="margin:0 0 12px">${NOTA_EXEMPLOS}</p><div class="resenhas">${resenhas.map((l) => resenha(l)).join("")}</div>`
+        : `<p class="mudo">Ninguém escreveu sobre essa ainda.</p>`);
+  } else {
+    corpo = (listas.length ? `<h2 class="leg">Está nestas listas</h2><div class="lgrade" style="margin:10px 0 24px">${listas.slice(0, 8).map((l) => cardLista(l, l.autor ? AMIGO.get(l.autor)?.nome : "")).join("")}</div>` : "")
+      + (mesmoU.length ? `<h2 class="leg">Mais de ${esc(u.nome)}</h2><div style="margin-top:10px">${muralLimitado(mesmoU.map((x) => itemMural(x)), "obra-uni-" + u.id)}</div>` : "");
+  }
+
+  const fundo = CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : "";
+  // Na obra o guia não vira gaveta no celular: marcar "Terminei" e dar nota são
+  // as ações principais do site e não podem ficar escondidas.
+  return `<div class="brilho" style="--c1:${u.cor}">${fundo}</div>`
+    + comGuia(guia, chaveAbas(abas, "obra.aba", "sobre") + corpo, { gaveta: false });
 }
+
 function cartaoElenco(o, x) {
   const p = C.P.get(x.p);
   if (!p) return "";
@@ -351,84 +429,61 @@ function pgPersonagem(id) {
   const g = progressoPersonagem(id);
   const fav = R.favoritos.personagens.includes(id);
   const vs = versoesDe(id);
-  const carregando = !elencoCarregado(id);
-
-  // ---------- o guia que fica grudado na tela ----------
   const arte = fotoDe(id);
-  const guia = `<aside class="guia" id="guia">
-    <button class="guia-puxador" type="button" aria-label="Abrir ou fechar o guia" aria-expanded="false"></button>
-    <div class="guia-rolo">
-      <div class="guia-retrato" style="--c:${cor}">${arte
-        ? `<img src="${esc(arte)}" alt="" loading="lazy">`
-        : `<span class="guia-iniciais">${esc(iniciais(p.nome))}</span>`}</div>
-      <h1 class="h1 guia-nome">${esc(p.nome)}</h1>
-      ${p.identidade ? `<p class="guia-sub">${esc(p.identidade)}</p>` : ""}
-      <div class="guia-acoes">
-        <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Favorito" : "Favoritar"}</button>
-        <button class="bt bt--mini" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar</button>
-      </div>
-      <div class="chips"><span class="chip">${esc(p.franquia)}</span>${p.jogo ? `<a class="chip" href="#jogo">${ic("jogo")}${NOME_DO_JOGO}</a>` : ""}</div>
-      <div class="guia-numeros">
-        <div><b>${g.total}</b><span>${g.total === 1 ? "obra" : "obras"}</span></div>
-        <div><b>${vs.length}</b><span>${vs.length === 1 ? "versão" : "versões"}</span></div>
-        <div><b>${g.pct}%</b><span>visto</span></div>
-      </div>
-      ${barra(g.pct, "barra--fina")}
-      <p class="guia-linha mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")}.</p>
-      ${p.primeira || p.estreia ? `<p class="guia-linha mudo">${p.primeira ? "Primeira aparição: " + esc(p.primeira) : "Estreia: " + esc(p.estreia)}</p>` : ""}
-      ${p.resumo ? `<p class="guia-resumo">${esc(p.resumo)}</p>` : ""}
-      <button class="guia-lado" data-acao="lado">${ic("troca")}Guia ${LADO_GUIA === "esq" ? "à direita" : "à esquerda"}</button>
-    </div></aside>`;
+
+  const guia = `<div class="guia-retrato" style="--c:${cor}">${arte
+      ? `<img src="${esc(arte)}" alt="" loading="lazy">`
+      : `<span class="guia-iniciais">${esc(iniciais(p.nome))}</span>`}</div>
+    <h1 class="h1 guia-nome">${esc(p.nome)}</h1>
+    ${p.identidade ? `<p class="guia-sub">${esc(p.identidade)}</p>` : ""}
+    <div class="guia-acoes">
+      <button class="bt bt--mini${fav ? " bt--amarelo" : ""}" data-acao="fav-pers" data-p="${esc(id)}" aria-pressed="${fav}">${ic("estrela", fav ? "ic--cheio" : "")}${fav ? "Favorito" : "Favoritar"}</button>
+      <button class="bt bt--mini" data-acao="partilhar-pers" data-p="${esc(id)}">${ic("partilhar")}Compartilhar</button>
+    </div>
+    <div class="chips"><a class="chip" href="#explorar">${esc(p.franquia)}</a></div>
+    <div class="guia-numeros">
+      <div><b>${g.total}</b><span>${g.total === 1 ? "obra" : "obras"}</span></div>
+      <div><b>${vs.length}</b><span>${vs.length === 1 ? "versão" : "versões"}</span></div>
+      <div><b>${g.pct}%</b><span>visto</span></div>
+    </div>
+    ${barra(g.pct, "barra--fina")}
+    <p class="guia-linha mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")}.</p>
+    ${p.primeira ? `<p class="guia-linha mudo">Primeira aparição: ${esc(p.primeira)}</p>` : ""}
+    ${p.resumo ? `<p class="guia-resumo">${esc(p.resumo)}</p>` : ""}
+    ${fichaGuia(p)}`;
 
   // ---------- as obras, separadas por papel ----------
   const aps = aparicoesCompletas(id);
   const porObra = new Map();
   for (const a of aps) {
-    const o = C.O.get(a.obra);
-    if (!o) continue;
+    if (!C.O.has(a.obra)) continue;
     const ja = porObra.get(a.obra);
     if (!ja || ORDEM_PAPEL[a.papel] < ORDEM_PAPEL[ja.papel]) porObra.set(a.obra, a);
   }
   const todas = [...porObra.values()].map((a) => ({ a, o: C.O.get(a.obra) }))
-    .sort((x, y) => y.o.ano - x.o.ano || x.o.titulo.localeCompare(y.o.titulo, "pt-BR"));
+    .sort((x, y) => fama(y.o) - fama(x.o) || y.o.ano - x.o.ano);
   const protagoniza = todas.filter((x) => x.a.papel === "protagonista");
   const participa = todas.filter((x) => x.a.papel !== "protagonista");
 
-  const abas = [["protagonista", `Protagonista (${protagoniza.length})`], ["participacao", `Participações (${participa.length})`], ["versoes", `Versões (${vs.length})`]];
-  const atual = abas.some(([k]) => k === UI.personagem.aba) ? UI.personagem.aba : "protagonista";
-  const chave = `<div class="chave" role="tablist">${abas.map(([k, t]) =>
-    `<button class="chave-bt" role="tab" aria-selected="${atual === k}" data-acao="filtro" data-k="personagem.aba" data-v="${k}">${esc(t)}</button>`).join("")}</div>`;
+  const abas = [];
+  if (protagoniza.length) abas.push(["protagonista", `Protagonista (${protagoniza.length})`]);
+  if (participa.length) abas.push(["participacao", `Participações (${participa.length})`]);
+  if (vs.length) abas.push(["versoes", `Versões (${vs.length})`]);
+  if (!abas.length) abas.push(["protagonista", "Obras (0)"]);
+  const atual = abaAtual(abas, "personagem.aba", abas[0][0]);
 
   let lista;
   if (atual === "versoes") {
-    lista = vs.length ? `<div class="versoes">${vs.map(cardVersao).join("")}</div>`
-      : `<p class="mudo">Nenhuma versão com nota ainda.</p>`;
+    lista = `<div class="versoes">${vs.map(cardVersao).join("")}</div>`;
   } else {
     const itens = atual === "protagonista" ? protagoniza : participa;
-    lista = itens.length ? `<div class="lista-ap">${itens.map(({ a, o }) => itemAparicao(o, a)).join("")}</div>`
-      : `<p class="mudo">${atual === "protagonista" ? `Nenhuma obra com ${esc(p.nome)} no papel principal.` : `Só aparições principais por enquanto.`}</p>`;
+    lista = itens.length
+      ? muralLimitado(itens.map(({ a, o }) => itemMural(o, a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "", papelChip(a.papel))), "pers-" + id + "-" + atual)
+      : `<p class="mudo">Nada aqui ainda.</p>`;
   }
 
-  return `<div class="pers" data-lado="${esc(LADO_GUIA)}">${guia}
-    <div class="pers-corpo">${chave}${lista}
-      ${carregando ? `<p class="carregando-cat">Buscando o resto das aparições...</p>` : ""}
-    </div></div>`;
-}
-
-// Uma linha da lista de aparições: capa, título, papel e quem interpretou.
-function itemAparicao(o, a) {
-  const u = C.U.get(o.universo);
-  const e = estObra(o.id) || {};
-  const quem = a.ator ? (a.voz || o.formato === "desenho" || o.formato === "animacao" ? "Voz: " : "") + a.ator : "";
-  return `<a class="ap ap--linha" href="#obra-${esc(o.id)}">
-    <span class="ap-capa">${capa(o)}</span>
-    <span class="ap-txt">
-      <span class="ap-t">${esc(o.titulo)}</span>
-      <span class="ap-m">${o.ano || "—"} · ${esc(FORMATO[o.formato].nome)} · ${esc(u.nome)}</span>
-      ${quem ? `<span class="ap-m">${esc(quem)}</span>` : ""}
-    </span>
-    <span class="ap-fim">${papelChip(a.papel)}${e.status ? `<span class="ap-st st-${esc(e.status)}">${esc(nomeStatus(e.status, o))}</span>` : ""}</span>
-  </a>`;
+  return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "personagem.aba", abas[0][0]) : "") + lista
+    + (elencoCarregado(id) ? "" : `<p class="carregando-cat">Buscando o resto das aparições...</p>`));
 }
 
 function cardVersao(v) {
@@ -451,7 +506,7 @@ function cardVersao(v) {
 }
 function fichaJogo(j) {
   const it = [["Editora", j.editora], ["Gênero", j.genero], ["Lado", j.lado], ["Poder", j.poder.join(", ")], ["Equipe", j.equipe.length ? j.equipe.join(", ") : "Nenhuma"], ["Estreia", j.estreia]];
-  return `<div class="q"><div class="ficha">${it.map(([k, v]) => `<div><b>${k}</b><span>${esc(v)}</span></div>`).join("")}</div><p class="mudo mini" style="margin-top:10px">É com essas pistas que o ${NOME_DO_JOGO} compara cada chute.</p></div>`;
+  return `<div class="q"><div class="ficha">${it.map(([k, v]) => `<div><b>${k}</b><span>${esc(v)}</span></div>`).join("")}</div><p class="mudo mini" style="margin-top:10px">É com essas pistas que o jogo compara cada chute.</p></div>`;
 }
 
 // ---------- Universo e pessoa ----------
@@ -460,29 +515,65 @@ function pgUniverso(id) {
   if (!u) return naoAchei();
   PAG.titulo = u.nome;
   const g = progressoUniverso(id);
-  const vers = [...C.versoes.values()].filter((v) => v.u === id).map((v) => C.P.get(v.p)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  return `<header class="faixa" style="--c1:${u.cor}"><div class="faixa-in faixa-in--sem-capa"><span class="emb-w"><span class="emb emb--xg" aria-hidden="true">${ic("globo")}</span></span><div class="faixa-txt">
-      <div class="chips"><span class="chip">${esc(u.franquia)}</span><span class="chip">${esc(u.midia)}</span><span class="chip">${esc(u.anos)}</span></div>
-      <h1 class="h1">${esc(u.nome)}</h1><p class="faixa-linha">${esc(u.desc)}</p></div></div></header>
-    <section class="q bloco" style="margin-top:20px"><div class="sec-h" style="margin:0"><h2 class="h2">Seu progresso</h2><span class="h2 num">${g.pct}%</span></div>${barra(g.pct)}
-      <div class="acoes"><span class="mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")} deste universo.</span><button class="bt bt--mini" data-acao="partilhar-uni" data-u="${esc(id)}">${ic("partilhar")}Compartilhar</button></div></section>
-    ${secao("Obras em ordem de lançamento", gradeLimitada(u.obras, "uni-" + id))}
-    ${vers.length ? secao("Personagens neste universo", `<div class="chips">${vers.map((p) => `<a class="chip" href="#personagem-${esc(p.id)}">${esc(p.nome)}</a>`).join("")}</div>`) : ""}`;
+  const vers = [...C.versoes.values()].filter((v) => v.u === id).map((v) => C.P.get(v.p))
+    .filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const porFormato = {};
+  for (const o of u.obras) porFormato[o.formato] = (porFormato[o.formato] || 0) + 1;
+
+  const guia = `<div class="guia-retrato" style="--c:${u.cor}"><span class="guia-iniciais">${ic("globo")}</span></div>
+    <h1 class="h1 guia-nome">${esc(u.nome)}</h1>
+    <p class="guia-sub">${esc(u.franquia)} · ${esc(u.anos)}</p>
+    <div class="guia-acoes"><button class="bt bt--mini" data-acao="partilhar-uni" data-u="${esc(id)}">${ic("partilhar")}Compartilhar</button></div>
+    <div class="chips"><span class="chip">${esc(u.midia)}</span></div>
+    <div class="guia-numeros">
+      <div><b>${g.total}</b><span>${g.total === 1 ? "obra" : "obras"}</span></div>
+      <div><b>${vers.length}</b><span>${vers.length === 1 ? "personagem" : "personagens"}</span></div>
+      <div><b>${g.pct}%</b><span>visto</span></div>
+    </div>
+    ${barra(g.pct, "barra--fina")}
+    <p class="guia-linha mudo">Você viu ${g.vistas} de ${plural(g.total, "obra", "obras")}.</p>
+    ${u.desc ? `<p class="guia-resumo">${esc(u.desc)}</p>` : ""}
+    ${Object.keys(porFormato).length > 1 ? `<div class="guia-bloco"><span class="h3">O que tem aqui</span><div class="chips">${Object.entries(porFormato).sort((a, b) => b[1] - a[1]).map(([f, n]) => `<span class="chip chip--fino">${n} ${esc(FORMATO[f].nome.toLowerCase())}</span>`).join("")}</div></div>` : ""}`;
+
+  const abas = [["obras", `Obras (${u.obras.length})`]];
+  if (vers.length) abas.push(["personagens", `Personagens (${vers.length})`]);
+  const atual = abaAtual(abas, "universo.aba", "obras");
+  const corpo = atual === "personagens"
+    ? `<div class="pgrade">${vers.map(cardPersonagem).join("")}</div>`
+    : muralLimitado([...u.obras].sort((a, b) => a.ano - b.ano).map((o) => itemMural(o)), "uni-" + id);
+
+  return `<div class="brilho" style="--c1:${u.cor}"></div>`
+    + comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "universo.aba", "obras") : "") + corpo);
 }
 function pgPessoa(id) {
   const pe = C.pessoas.get(id);
   if (!pe) return naoAchei();
   PAG.titulo = pe.nome;
   const grupos = [["atuacao", "Atuação"], ["voz", "Voz original"], ["dublagem", "Dublagem brasileira"]];
-  return `<h1 class="h1" style="margin-top:8px">${esc(pe.nome)}</h1><p class="mudo" style="margin-top:6px">${plural(pe.creditos.length, "crédito", "créditos")} na ${NOME_DO_SITE}.</p>`
-    + grupos.map(([t, nome]) => {
-      const cs = pe.creditos.filter((c) => c.tipo === t);
-      if (!cs.length) return "";
-      return secao(nome, `<div class="q">${cs.map((c) => {
-        const p = C.P.get(c.p), o = C.O.get(c.obra);
-        return `<a class="ap" href="#obra-${esc(o.id)}">${capa(o)}<span><span class="ap-t" style="display:block">${esc(p.nome)}</span><span class="ap-m">em ${esc(o.titulo)} · ${o.ano}${c.obs ? " · " + esc(c.obs) : ""}</span></span>${papelChip(c.papel)}</a>`;
-      }).join("")}</div>`);
-    }).join("");
+  const porTipo = Object.fromEntries(grupos.map(([t]) => [t, pe.creditos.filter((c) => c.tipo === t)]));
+  const persDiferentes = new Set(pe.creditos.map((c) => c.p));
+  const franquias = [...new Set(pe.creditos.map((c) => (C.O.get(c.obra) || {}).franquia).filter(Boolean))];
+
+  const guia = `<div class="guia-retrato" style="--c:${corValida(COR_FRANQ[franquias[0]]) || "#4d8ae8"}"><span class="guia-iniciais">${esc(iniciais(pe.nome))}</span></div>
+    <h1 class="h1 guia-nome">${esc(pe.nome)}</h1>
+    <p class="guia-sub">${plural(pe.creditos.length, "crédito", "créditos")} na ${NOME_DO_SITE}</p>
+    <div class="guia-numeros">
+      <div><b>${pe.creditos.length}</b><span>${pe.creditos.length === 1 ? "papel" : "papéis"}</span></div>
+      <div><b>${persDiferentes.size}</b><span>${persDiferentes.size === 1 ? "personagem" : "personagens"}</span></div>
+      <div><b>${franquias.length}</b><span>${franquias.length === 1 ? "franquia" : "franquias"}</span></div>
+    </div>
+    ${franquias.length ? `<div class="guia-bloco"><span class="h3">Franquias</span><div class="chips">${franquias.map((f) => `<span class="chip chip--fino">${esc(f)}</span>`).join("")}</div></div>` : ""}`;
+
+  const abas = grupos.filter(([t]) => porTipo[t].length).map(([t, nome]) => [t, `${nome} (${porTipo[t].length})`]);
+  if (!abas.length) return comGuia(guia, `<p class="mudo">Nenhum crédito cadastrado.</p>`);
+  const atual = abaAtual(abas, "pessoa.aba", abas[0][0]);
+  const cs = porTipo[atual] || [];
+  const corpo = muralLimitado(cs.map((c) => {
+    const o = C.O.get(c.obra), pp = C.P.get(c.p);
+    return o ? itemMural(o, pp ? pp.nome : "", papelChip(c.papel)) : "";
+  }).filter(Boolean), "pessoa-" + id + "-" + atual);
+
+  return comGuia(guia, (abas.length > 1 ? chaveAbas(abas, "pessoa.aba", abas[0][0]) : "") + corpo);
 }
 
 // ---------- Diário ----------
@@ -542,15 +633,34 @@ function pgLista(id) {
   const vistas = itens.filter((o) => vista(o.id)).length;
   const pct = itens.length ? Math.round((vistas / itens.length) * 100) : 0;
   const edita = tipo === "minha";
-  const por = tipo === "oficial" ? `<span class="oficial">Oficial</span> ${NOME_DO_SITE}` : tipo === "amigo" ? `por <a href="#usuario-${esc(autor.id)}">${esc(autor.nome)}</a> <span class="selo-ex">exemplo</span>` : tipo === "exemplo" ? `sua lista <span class="selo-ex">exemplo</span>` : "sua lista";
-  return `<p class="mini" style="margin-top:6px">${por}</p><h1 class="h1" style="margin-top:6px">${esc(l.titulo)}</h1>
-    ${l.descricao ? `<p class="prosa" style="margin-top:8px;font-size:18px">${esc(l.descricao)}</p>` : ""}
-    <section class="q bloco" style="margin-top:18px"><div class="sec-h" style="margin:0"><span class="h3">Você viu ${vistas} de ${plural(itens.length, "obra", "obras")}</span><span class="h2 num">${pct}%</span></div>${barra(pct)}
-      ${edita ? `<div class="acoes"><button class="bt bt--forte bt--mini" data-acao="lista-buscar" data-lista="${esc(l.id)}">${ic("mais")}Adicionar obra</button><button class="bt bt--mini" data-acao="lista-editar" data-lista="${esc(l.id)}">${ic("lapis")}Editar</button><button class="bt bt--mini bt--perigo" data-acao="lista-apagar" data-lista="${esc(l.id)}">${ic("lixo")}Apagar lista</button></div>` : ""}</section>
-    ${itens.length ? `<div class="litens" style="margin-top:20px">${itens.map((o, i) => `<div class="litem"><span class="litem-n">${i + 1}</span><a href="#obra-${esc(o.id)}" aria-label="${esc(o.titulo)}">${capa(o)}</a>
-      <span><a class="ap-t" href="#obra-${esc(o.id)}" style="display:block;text-decoration:none">${esc(o.titulo)}</a><span class="ap-m">${o.ano} · ${esc(FORMATO[o.formato].nome)}${emBreve(o) ? " · em breve" : ""}</span></span>
-      ${edita ? `<span class="litem-a"><button class="icbt" data-acao="lista-mover" data-lista="${esc(l.id)}" data-i="${i}" data-d="-1" aria-label="Subir"${i === 0 ? " disabled" : ""}>${ic("cima")}</button><button class="icbt" data-acao="lista-mover" data-lista="${esc(l.id)}" data-i="${i}" data-d="1" aria-label="Descer"${i === itens.length - 1 ? " disabled" : ""}>${ic("baixo")}</button><button class="icbt" data-acao="lista-tirar" data-lista="${esc(l.id)}" data-obra="${esc(o.id)}" aria-label="Tirar da lista">${ic("x")}</button></span>` : ""}</div>`).join("")}</div>`
-      : `<div class="q vazio" style="margin-top:20px"><p>Lista vazia por enquanto.</p></div>`}`;
+  const por = tipo === "oficial" ? `<span class="oficial">Oficial</span> ${NOME_DO_SITE}`
+    : tipo === "amigo" ? `por <a href="#usuario-${esc(autor.id)}">${esc(autor.nome)}</a> <span class="selo-ex">exemplo</span>`
+    : tipo === "exemplo" ? `sua lista <span class="selo-ex">exemplo</span>` : "sua lista";
+
+  const guia = `<div class="guia-retrato" style="--c:var(--ouro)"><span class="guia-iniciais">${ic("lista")}</span></div>
+    <h1 class="h1 guia-nome">${esc(l.titulo)}</h1>
+    <p class="guia-sub">${por}</p>
+    ${l.descricao ? `<p class="guia-resumo">${esc(l.descricao)}</p>` : ""}
+    <div class="guia-numeros">
+      <div><b>${itens.length}</b><span>${itens.length === 1 ? "obra" : "obras"}</span></div>
+      <div><b>${vistas}</b><span>${vistas === 1 ? "vista" : "vistas"}</span></div>
+      <div><b>${pct}%</b><span>feito</span></div>
+    </div>
+    ${barra(pct, "barra--fina")}
+    ${edita ? `<div class="guia-bloco">
+      <button class="bt bt--forte bt--mini" data-acao="lista-buscar" data-lista="${esc(l.id)}">${ic("mais")}Adicionar obra</button>
+      <div class="guia-acoes"><button class="bt bt--mini" data-acao="lista-editar" data-lista="${esc(l.id)}">${ic("lapis")}Editar</button>
+      <button class="bt bt--mini bt--perigo" data-acao="lista-apagar" data-lista="${esc(l.id)}">${ic("lixo")}Apagar</button></div></div>` : ""}`;
+
+  const corpo = itens.length
+    ? `<div class="litens">${itens.map((o, i) => `<div class="litem"><span class="litem-n">${i + 1}</span><a href="#obra-${esc(o.id)}" aria-label="${esc(o.titulo)}">${capa(o)}</a>
+        <span><a class="ap-t" href="#obra-${esc(o.id)}" style="display:block;text-decoration:none">${esc(o.titulo)}</a><span class="ap-m">${o.ano} · ${esc(FORMATO[o.formato].nome)}${emBreve(o) ? " · em breve" : ""}</span></span>
+        ${edita ? `<span class="litem-a"><button class="icbt" data-acao="lista-mover" data-lista="${esc(l.id)}" data-i="${i}" data-d="-1" aria-label="Subir"${i === 0 ? " disabled" : ""}>${ic("cima")}</button><button class="icbt" data-acao="lista-mover" data-lista="${esc(l.id)}" data-i="${i}" data-d="1" aria-label="Descer"${i === itens.length - 1 ? " disabled" : ""}>${ic("baixo")}</button><button class="icbt" data-acao="lista-tirar" data-lista="${esc(l.id)}" data-obra="${esc(o.id)}" aria-label="Tirar da lista">${ic("x")}</button></span>` : ""}</div>`).join("")}</div>`
+    : `<div class="q vazio"><p>Lista vazia por enquanto.</p></div>`;
+
+  // Como na obra: aqui o guia tem os botões de editar a lista, então no celular
+  // ele fica aberto em vez de virar gaveta.
+  return comGuia(guia, corpo, { gaveta: !edita });
 }
 
 // ---------- Perfil ----------
@@ -614,7 +724,7 @@ function pgSobre() {
   return `<h1 class="h1" style="margin-top:8px">Sobre o beta</h1>
     <div class="prosa" style="margin-top:14px;font-size:17px">
       <p>A ${NOME_DO_SITE} é um diário só de heróis: filmes, séries, desenhos e HQs da Marvel, da DC e de outras editoras, tudo num lugar só. O foco são os personagens: cada versão de cada personagem tem página, nota e lista de aparições.</p>
-      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, ${NOME_DO_JOGO}), mas a comunidade ainda é de exemplo.</p>
+      <p>Esta é a versão de teste. Tudo funciona de verdade (registrar, dar nota, listas, progresso, o jogo do dia), mas a comunidade ainda é de exemplo.</p>
     </div>
     ${secao("O que entra na versão no ar", `<div class="q prosa"><p>Endereço próprio (.com.br), login com Google e contas de verdade, para seguir amigos reais.</p><p>Pôsteres do TMDB e capas do Comic Vine, com os avisos de crédito que eles pedem.</p><p>Política de privacidade (LGPD), botão para excluir a conta, denúncias com moderação e cuidados extras com menores de idade (ECA Digital).</p><p>Catálogo maior, com as edições brasileiras das HQs e onde ler cada uma.</p></div>`)}
     ${secao("Sobre os dados", `<div class="q prosa"><p>O catálogo foi montado à mão. A dublagem brasileira só aparece quando está confirmada; o resto fica “a cadastrar”. O elenco de filmes que ainda não estrearam é parcial.</p><p>Os pôsteres de filmes, séries e desenhos vêm do <a href="https://www.themoviedb.org/">TMDB</a>, e as capas de HQ vêm do <a href="https://comicvine.gamespot.com/">Comic Vine</a>. Cada HQ usa a capa da primeira edição da história. Onde não existe capa, a ${NOME_DO_SITE} desenha uma.</p></div>`)}

@@ -1,4 +1,4 @@
-// ================= Heroidle (o jogo diário, dentro do site) =================
+// ================= O jogo diário, dentro do site =================
 const J = { chave: "", numero: 1, alvo: null, chutes: [], venceu: false, sug: [], ativo: 0 };
 let BASE_JOGO = [];
 function prepararJogo() {

@@ -315,6 +315,6 @@ const CONQUISTAS = [
   { nome: "Viajante do multiverso", desc: "Terminou obras de 5 universos", ok: (s) => s.universos >= 5, t: "5U" },
   { nome: "Crítico de plantão", desc: "Escreveu 5 resenhas", ok: (s) => s.resenhas >= 5, t: "5" },
   { nome: "Juiz de versões", desc: "Deu nota para 5 versões de personagens", ok: (s) => s.persNotas >= 5, t: "★" },
-  { nome: "Detetive", desc: "Sequência de 3 dias no Heroidle", ok: (s) => s.recorde >= 3, t: "3" },
+  { nome: "Detetive", desc: "Sequência de 3 dias no jogo", ok: (s) => s.recorde >= 3, t: "3" },
   { nome: "Fã completo", desc: "Viu tudo de um personagem", ok: (s) => s.completos >= 1, t: "100" },
 ];

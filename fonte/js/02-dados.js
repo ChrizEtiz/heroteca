@@ -85,7 +85,7 @@ function indexar(regs) {
   for (const u of C.universos) u.obras.sort((a, b) => a.ano - b.ano || a.titulo.localeCompare(b.titulo, "pt-BR"));
   for (const v of C.versoes.values()) v.aps.sort((a, b) => C.O.get(a.obra).ano - C.O.get(b.obra).ano);
   for (const p of C.pessoas.values()) p.creditos.sort((a, b) => C.O.get(a.obra).ano - C.O.get(b.obra).ano);
-  // Heroidle: mesmos nomes e ids do jogo avulso, para o personagem do dia bater
+  // Jogo do dia: mesmos nomes e ids do jogo avulso, para o personagem do dia bater
   for (const p of C.personagens) {
     if (!p.jogo) continue;
     const j = { ...p.jogo, id: slug(p.jogo.nome), site: p.id, apelidos: p.apelidos || [], franquia: p.franquia };
