@@ -166,3 +166,58 @@ function hidratarSagas(raiz = document) {
     });
   }
 }
+
+// ================= Temporadas e episódios =================
+// Vêm do Supabase, buscados quando a pessoa abre a série. As obras feitas à
+// mão já trazem as temporadas no catálogo; as importadas ganham aqui.
+const EPS = { porSerie: new Map(), prontos: new Map() };
+
+function temporadasDaSerie(o) {
+  const t = o.tmdb;
+  if (!t || !t.i || t.t !== "tv") return Promise.resolve(null);
+  if (EPS.porSerie.has(t.i)) return EPS.porSerie.get(t.i);
+  const p = Promise.all([
+    doSupabase("temporadas", { select: "temporada,titulo,data,cartaz,eps", serie: "eq." + t.i, order: "temporada.asc" }),
+    doSupabase("episodios", { select: "temporada,ep,titulo,resumo,data,minutos,imagem,nota", serie: "eq." + t.i, order: "temporada.asc,ep.asc", limit: "900" }),
+  ]).then(([temps, eps]) => {
+    const porT = new Map();
+    for (const e of eps) {
+      if (!porT.has(e.temporada)) porT.set(e.temporada, []);
+      porT.get(e.temporada).push(e);
+    }
+    return temps.map((t2) => ({ ...t2, lista: porT.get(t2.temporada) || [] })).filter((t2) => t2.lista.length);
+  }).catch(() => []);
+  EPS.porSerie.set(t.i, p);
+  return p;
+}
+
+function pedirTemporadas(o, aoChegar) {
+  const t = o.tmdb;
+  if (!t || !t.i || t.t !== "tv" || EPS.prontos.has(o.id)) return false;
+  EPS.prontos.set(o.id, null);
+  temporadasDaSerie(o).then((lista) => {
+    EPS.prontos.set(o.id, lista || []);
+    // A lista real de episódios manda: o progresso por temporada passa a contar
+    // por ela, inclusive nas obras cadastradas à mão.
+    if (lista && lista.length) {
+      o.temporadas = lista.map((t2) => ({ n: t2.temporada, eps: t2.lista.length }));
+    }
+    aoChegar();
+  }).catch(() => { EPS.prontos.set(o.id, []); aoChegar(); });
+  return true;
+}
+const temporadasProntas = (o) => EPS.prontos.get(o.id) || null;
+
+// O próximo episódio que a pessoa ainda não viu.
+function proximoEpisodio(o) {
+  const lista = temporadasProntas(o);
+  if (!lista || !lista.length) return null;
+  const e = estObra(o.id) || {};
+  for (const t of lista) {
+    const vistos = (e.eps && e.eps[t.temporada]) || [];
+    for (const ep of t.lista) {
+      if (!vistos.includes(ep.ep)) return { t: t.temporada, ...ep };
+    }
+  }
+  return null;
+}

@@ -4,13 +4,14 @@ const UI = {
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
   mural: { agrupar: "formato" },
-  obra: { aba: "sobre" },
+  obra: { aba: "sobre", temp: 0 },
   universo: { aba: "obras" },
   pessoa: { aba: "atuacao" },
   diario: { ano: "todos", formato: "todos", tag: "" },
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+let PRECISA_TEMPORADAS = null;   // a série cuja lista de episódios falta buscar
 
 // ---------- páginas com guia grudado ----------
 // O guia fica parado à esquerda; o conteúdo rola do lado. Vale para
@@ -32,6 +33,78 @@ function abaAtual(abas, chave, padrao) {
   const [a, b] = chave.split(".");
   const v = UI[a] && UI[a][b];
   return abas.some(([k]) => k === v) ? v : padrao;
+}
+
+// ---------- aba de episódios ----------
+// Uma temporada por vez, com a imagem de cada episódio. Em cima, o próximo
+// que falta ver, porque o pecado dos sites de série é esconder isso atrás de
+// três cliques.
+function abaEpisodios(o) {
+  const lista = temporadasProntas(o);
+  if (lista === null) return `<p class="carregando-cat">Buscando os episódios...</p>`;
+  // Sem a lista detalhada (TMDB fora do ar, ou série que ele não tem), cai para
+  // os quadradinhos numerados do catálogo: é feio, mas dá para marcar.
+  if (!lista.length) {
+    return (o.temporadas || o.episodios)
+      ? `<p class="mudo mini" style="margin-top:0">Não consegui as imagens dos episódios agora. Dá para marcar por número.</p>${blocoProgresso(o, estObra(o.id) || {})}`
+      : `<p class="mudo">Não achei a lista de episódios desta no TMDB.</p>`;
+  }
+
+  const e = estObra(o.id) || {};
+  const prox = proximoEpisodio(o);
+  const vistosTotal = Object.values(e.eps || {}).reduce((n, l) => n + l.length, 0);
+  const total = lista.reduce((n, t) => n + t.lista.length, 0);
+
+  const escolhida = Number(UI.obra.temp);
+  const atual = lista.some((t) => t.temporada === escolhida)
+    ? escolhida
+    : (prox ? prox.t : lista[0].temporada);
+  const t = lista.find((x) => x.temporada === atual);
+  const vistos = new Set((e.eps && e.eps[atual]) || []);
+
+  const retomar = prox ? `<section class="retomar">
+      <span class="retomar-leg">${vistosTotal ? "Continue de onde parou" : "Comece por aqui"}</span>
+      <div class="retomar-in">
+        ${imgEp(prox, "retomar-img")}
+        <div class="retomar-txt">
+          <strong>${esc(prox.titulo || "Episódio " + prox.ep)}</strong>
+          <span class="mudo mini">${codigoEp(prox.t, prox.ep)}${prox.data ? " · " + dataCurta(prox.data) : ""}${prox.minutos ? " · " + prox.minutos + " min" : ""}</span>
+        </div>
+        <button class="bt bt--forte bt--mini" data-acao="ep" data-obra="${esc(o.id)}" data-t="${prox.t}" data-e="${prox.ep}">${ic("check")}Vi esse</button>
+      </div></section>` : `<section class="retomar retomar--fim"><span class="retomar-leg">Você viu todos os ${total} episódios.</span></section>`;
+
+  const pilulas = `<div class="temp-pil" role="tablist">${lista.map((x) => {
+    const v = ((e.eps && e.eps[x.temporada]) || []).length;
+    const completa = v >= x.lista.length;
+    return `<button class="pil${x.temporada === atual ? " pil--on" : ""}${completa ? " pil--ok" : ""}" role="tab" aria-selected="${x.temporada === atual}" data-acao="filtro" data-k="obra.temp" data-v="${x.temporada}" data-dica="${esc(x.titulo || "Temporada " + x.temporada)} — ${v} de ${x.lista.length} vistos">T${x.temporada}</button>`;
+  }).join("")}</div>`;
+
+  const cabecalho = `<div class="temp-cab">
+      <div><h3 class="h2">${esc(t.titulo || "Temporada " + atual)}</h3>
+        <p class="mudo mini">${t.data ? new Date(t.data).getFullYear() + " · " : ""}${plural(t.lista.length, "episódio", "episódios")} · ${vistos.size} ${vistos.size === 1 ? "visto" : "vistos"}</p></div>
+      <button class="bt bt--mini" data-acao="temp-toda" data-obra="${esc(o.id)}" data-t="${atual}">${vistos.size === t.lista.length ? ic("x") + "Desmarcar a temporada" : ic("check") + "Marcar a temporada toda"}</button>
+    </div>${barra(Math.round((vistos.size / t.lista.length) * 100), "barra--fina")}`;
+
+  const eps = t.lista.map((ep) => {
+    const vi = vistos.has(ep.ep);
+    return `<article class="epc${vi ? " epc--vi" : ""}">
+      ${imgEp(ep, "epc-img")}
+      <div class="epc-txt">
+        <span class="epc-t">${esc(ep.titulo || "Episódio " + ep.ep)}</span>
+        <span class="epc-m">${codigoEp(atual, ep.ep)}${ep.data ? " · " + dataCurta(ep.data) : ""}${ep.minutos ? " · " + ep.minutos + " min" : ""}${ep.nota ? ` · ${ic("estrela", "ic--cheio")}${Number(ep.nota).toFixed(1)}` : ""}</span>
+        ${ep.resumo ? `<span class="epc-r">${esc(ep.resumo)}</span>` : ""}
+      </div>
+      <button class="epc-bt${vi ? " epc-bt--on" : ""}" data-acao="ep" data-obra="${esc(o.id)}" data-t="${atual}" data-e="${ep.ep}" aria-pressed="${vi}" data-dica="${vi ? "Marcar como não visto" : "Marcar como visto"}">${ic(vi ? "check" : "olho")}</button>
+    </article>`;
+  }).join("");
+
+  return retomar + pilulas + cabecalho + `<div class="epl">${eps}</div>`;
+}
+const codigoEp = (t, n) => `T${String(t).padStart(2, "0")}E${String(n).padStart(2, "0")}`;
+function imgEp(ep, classe) {
+  return ep.imagem
+    ? `<img class="${classe}" src="https://image.tmdb.org/t/p/w300${esc(ep.imagem)}" alt="" loading="lazy">`
+    : `<span class="${classe} ${classe}--vazia" aria-hidden="true">${ic("tv")}</span>`;
 }
 
 // A ficha do personagem no pé do guia: lado, poderes, equipes, apelidos.
@@ -348,8 +421,14 @@ function pgObra(id) {
   const temElenco = o.elenco.length || (o.tmdb && o.tmdb.i);
   const prog = blocoProgresso(o, e);
 
+  // Personagens vem antes de bastidores: o site é sobre os heróis, não sobre
+  // quem os interpretou.
+  const serie = o.tmdb && o.tmdb.t === "tv";
   const abas = [["sobre", "Sobre"]];
-  if (temElenco) abas.push(["elenco", o.formato === "hq" ? "Personagens" : "Elenco"]);
+  if (serie) abas.push(["episodios", "Episódios"]);
+  if (o.edicoes) abas.push(["edicoes", "Edições"]);
+  if (o.elenco.length) abas.push(["personagens", "Personagens"]);
+  if (temElenco) abas.push(["bastidores", o.formato === "hq" ? "Autores" : "Bastidores"]);
   abas.push(["resenhas", `Resenhas (${resenhas.length})`]);
   if (mesmoU.length || listas.length) abas.push(["relacionadas", "Relacionadas"]);
   const atual = abaAtual(abas, "obra.aba", "sobre");
@@ -358,10 +437,16 @@ function pgObra(id) {
   if (atual === "sobre") {
     corpo = (o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : "")
       + (o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : "")
-      + prog
-      + (o.elenco.length && !breve ? blocoNotasPersonagens(o) : "")
-      + (!o.cv && !prog && !o.elenco.length ? `<p class="mudo">Ainda não há ficha escrita para esta. Dê nota, registre no diário ou veja o elenco.</p>` : "");
-  } else if (atual === "elenco") {
+      + (serie || o.edicoes ? "" : prog)
+      + (!o.cv && !prog && !o.elenco.length ? `<p class="mudo">Ainda não há ficha escrita para esta. Dê nota, registre no diário ou veja os personagens.</p>` : "");
+  } else if (atual === "episodios") {
+    corpo = abaEpisodios(o);
+  } else if (atual === "edicoes") {
+    corpo = blocoProgresso(o, e) || `<p class="mudo">Sem edições cadastradas.</p>`;
+  } else if (atual === "personagens") {
+    corpo = `<div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>`
+      + (o.elenco.length && !breve ? blocoNotasPersonagens(o) : "");
+  } else if (atual === "bastidores") {
     corpo = o.elenco.length
       ? `<div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>`
         + (o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada.</p>` : "")
@@ -376,6 +461,7 @@ function pgObra(id) {
   }
 
   const fundo = CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : "";
+  if (serie) PRECISA_TEMPORADAS = o;
   // Na obra o guia não vira gaveta no celular: marcar "Terminei" e dar nota são
   // as ações principais do site e não podem ficar escondidas.
   return `<div class="brilho" style="--c1:${u.cor}">${fundo}</div>`

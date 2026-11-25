@@ -118,6 +118,7 @@ const ICONES = {
   spoiler: "M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.6 6.6C3.9 8.4 2 12 2 12s3.6 6 10 6c1.6 0 3-.3 4.3-.9M9.9 9.9a3 3 0 0 0 4.2 4.2",
   upload: "M12 21V9M7 14l5-5 5 5M4 4h16",
   troca: "M7 7h11l-3-3M17 17H6l3 3",
+  tv: "M3 6h18v12H3zM8 21h8M12 18v3",
 };
 const ic = (nome, extra = "") => `<svg class="ic ${extra}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONES[nome]}"/></svg>`;
 const SVG_ESTRELA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="eo" d="${ICONES.estrela}"/><path class="ef" d="${ICONES.estrela}"/></svg>`;

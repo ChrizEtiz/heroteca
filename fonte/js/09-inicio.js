@@ -45,7 +45,11 @@ function desenhar({ manterScroll = false } = {}) {
   if (faltaCatalogo(rota)) {
     main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
     pedirCatalogo();
-  } else if (rota.nome === "personagem" && C.P.has(rota.arg)) {
+  } else if (PRECISA_TEMPORADAS) {
+    const o = PRECISA_TEMPORADAS; PRECISA_TEMPORADAS = null;
+    pedirTemporadas(o, () => { const r = rotaAtual(); if (r.nome === "obra" && r.arg === o.id) desenhar({ manterScroll: true }); });
+  }
+  if (rota.nome === "personagem" && C.P.has(rota.arg)) {
     pedirElencoDoPersonagem(rota.arg, () => { if (rotaAtual().arg === rota.arg) desenhar({ manterScroll: true }); });
     prepararGaveta();
   }

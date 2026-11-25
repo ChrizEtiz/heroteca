@@ -53,11 +53,19 @@ try:
         pg.click('.st-bt[data-s="terminei"]')
         pg.click('.aval-b[data-acao="nota-obra"][data-n="9"]')
         pg.click('.coracao[data-acao="curtir"]')
-        pg.click('.ep[data-t="1"][data-e="7"]')
+        # os episódios agora moram na aba própria
+        pg.click('.chave-bt:has-text("Episódios")')
+        pg.wait_for_selector('.epc-bt, .ep[data-t="1"]', timeout=12000)
+        if pg.locator('.epc-bt').count():
+            pg.locator('.epc-bt').nth(6).click()        # 7º episódio
+        else:
+            pg.click('.ep[data-t="1"][data-e="7"]')
         est = pg.evaluate("JSON.parse(localStorage.getItem('heroteca-v1')).obras['x-men-97']")
         if not (est.get("nota") == 9 and est.get("curtiu") and 7 in est["eps"]["1"]):
             erros.append(f"estado da obra errado: {est}")
-        # nota de personagem (liberada porque começou a ver)
+        # nota de personagem (liberada porque começou a ver) — agora na aba Personagens
+        pg.click('.chave-bt:has-text("Personagens")')
+        pg.wait_for_selector('.vnota .aval-b[data-n="8"]', timeout=12000)
         pg.click('.vnota .aval-b[data-n="8"] >> nth=0')
         # registrar um episódio pelo modal
         pg.click('button[data-acao="log-abrir"] >> nth=0')
@@ -76,11 +84,15 @@ try:
         if "<b>sem html</b>" in pg.inner_html("#conteudo"):
             erros.append("resenha não foi escapada")
 
-        # HQ: edições
-        ir("obra-batman-ano-um", ".ed-l")
+        # HQ: edições (agora na aba própria)
+        ir("obra-batman-ano-um", ".chave-bt")
+        pg.click('.chave-bt:has-text("Edições")')
+        pg.wait_for_selector('.ed-l', timeout=12000)
         pg.click('.ed-l[data-i="1"]')
-        # contador de episódios
-        ir("obra-tartarugas-ninja-1987", ".contador")
+        # contador de episódios (aba própria)
+        ir("obra-tartarugas-ninja-1987", ".chave-bt")
+        pg.click('.chave-bt:has-text("Episódios")')
+        pg.wait_for_selector('.contador', timeout=12000)
         pg.click('[data-acao="eps-n"][data-d="10"]')
         # obra em breve: só "quero ver"
         ir("obra-vingadores-doutor-destino-2026", ".st-bt")

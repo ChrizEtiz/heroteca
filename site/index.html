@@ -899,6 +899,69 @@ textarea.entrada { min-height: 110px; resize: vertical; line-height: 1.5; }
 .agrupar select:hover { border-color: var(--line-forte); }
 .capa-st { cursor: help; }
 
+/* ================= Episódios ================= */
+/* O erro clássico dos sites de série é esconder o próximo episódio atrás de
+   três cliques. Aqui ele é a primeira coisa da aba. */
+.retomar {
+  background: linear-gradient(120deg, color-mix(in srgb, var(--ouro) 12%, var(--panel)), var(--panel));
+  border: 1px solid var(--line-forte); border-radius: var(--r); padding: 12px 14px; margin-bottom: 18px;
+}
+.retomar-leg { display: block; font-size: .74rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ouro); margin-bottom: 8px; }
+.retomar-in { display: grid; grid-template-columns: 124px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.retomar-img { width: 124px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-s); display: block; }
+.retomar-img--vazia { display: grid; place-items: center; background: var(--panel-2); color: var(--muted); }
+.retomar-txt { display: grid; gap: 3px; min-width: 0; }
+.retomar--fim { text-align: center; }
+.retomar--fim .retomar-leg { margin: 0; color: var(--st-terminei); }
+
+.temp-pil { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.pil {
+  border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  border-radius: 999px; padding: 6px 14px; font: inherit; font-size: .84rem; cursor: pointer;
+}
+.pil:hover { border-color: var(--line-forte); color: var(--ink); }
+.pil--ok { border-color: color-mix(in srgb, var(--st-terminei) 45%, var(--line)); color: var(--st-terminei); }
+.pil--on { background: var(--ouro); border-color: var(--ouro); color: var(--ink-escuro); font-weight: 600; }
+
+.temp-cab { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.temp-cab h3 { margin: 0; }
+.temp-cab p { margin: 2px 0 0; }
+
+.epl { display: grid; gap: 10px; margin-top: 18px; }
+.epc {
+  display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 14px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-s); padding: 10px;
+}
+.epc:hover { border-color: var(--line-forte); }
+.epc--vi { border-color: color-mix(in srgb, var(--st-terminei) 32%, var(--line)); }
+.epc--vi .epc-t { color: var(--muted); }
+.epc-img { width: 150px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; display: block; }
+.epc-img--vazia { display: grid; place-items: center; background: var(--panel-2); color: var(--muted); }
+.epc-txt { display: grid; gap: 3px; min-width: 0; }
+.epc-t { font-weight: 600; font-size: .95rem; }
+.epc-m { font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.epc-m .ic { width: 13px; height: 13px; color: var(--ouro); }
+.epc-r {
+  font-size: .82rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.epc-bt {
+  width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line-forte);
+  background: var(--panel-2); color: var(--muted); cursor: pointer; display: grid; place-items: center;
+}
+.epc-bt:hover { color: var(--ink); border-color: var(--ouro); }
+.epc-bt--on { background: var(--st-terminei); border-color: var(--st-terminei); color: var(--ink-escuro); }
+
+@media (max-width: 680px) {
+  .retomar-in { grid-template-columns: 96px minmax(0, 1fr); }
+  .retomar-in .bt { grid-column: 1 / -1; justify-content: center; }
+  .retomar-img { width: 96px; }
+  .epc { grid-template-columns: 104px minmax(0, 1fr) auto; gap: 10px; padding: 8px; }
+  .epc-img { width: 104px; }
+  .epc-r { display: none; }
+  .epc-bt { width: 38px; height: 38px; }
+}
+
 </style>
 </head>
 <body>
@@ -1064,6 +1127,7 @@ const ICONES = {
   spoiler: "M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c6.4 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.6 6.6C3.9 8.4 2 12 2 12s3.6 6 10 6c1.6 0 3-.3 4.3-.9M9.9 9.9a3 3 0 0 0 4.2 4.2",
   upload: "M12 21V9M7 14l5-5 5 5M4 4h16",
   troca: "M7 7h11l-3-3M17 17H6l3 3",
+  tv: "M3 6h18v12H3zM8 21h8M12 18v3",
 };
 const ic = (nome, extra = "") => `<svg class="ic ${extra}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONES[nome]}"/></svg>`;
 const SVG_ESTRELA = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="eo" d="${ICONES.estrela}"/><path class="ef" d="${ICONES.estrela}"/></svg>`;
@@ -1784,13 +1848,14 @@ const UI = {
   personagens: { q: "", franquia: "todas", ordem: "az" },
   personagem: { aba: "protagonista" },
   mural: { agrupar: "formato" },
-  obra: { aba: "sobre" },
+  obra: { aba: "sobre", temp: 0 },
   universo: { aba: "obras" },
   pessoa: { aba: "atuacao" },
   diario: { ano: "todos", formato: "todos", tag: "" },
   perfilTudo: false, versoes: {}, temps: {},
 };
 const PAG = { titulo: "" };
+let PRECISA_TEMPORADAS = null;   // a série cuja lista de episódios falta buscar
 
 // ---------- páginas com guia grudado ----------
 // O guia fica parado à esquerda; o conteúdo rola do lado. Vale para
@@ -1812,6 +1877,78 @@ function abaAtual(abas, chave, padrao) {
   const [a, b] = chave.split(".");
   const v = UI[a] && UI[a][b];
   return abas.some(([k]) => k === v) ? v : padrao;
+}
+
+// ---------- aba de episódios ----------
+// Uma temporada por vez, com a imagem de cada episódio. Em cima, o próximo
+// que falta ver, porque o pecado dos sites de série é esconder isso atrás de
+// três cliques.
+function abaEpisodios(o) {
+  const lista = temporadasProntas(o);
+  if (lista === null) return `<p class="carregando-cat">Buscando os episódios...</p>`;
+  // Sem a lista detalhada (TMDB fora do ar, ou série que ele não tem), cai para
+  // os quadradinhos numerados do catálogo: é feio, mas dá para marcar.
+  if (!lista.length) {
+    return (o.temporadas || o.episodios)
+      ? `<p class="mudo mini" style="margin-top:0">Não consegui as imagens dos episódios agora. Dá para marcar por número.</p>${blocoProgresso(o, estObra(o.id) || {})}`
+      : `<p class="mudo">Não achei a lista de episódios desta no TMDB.</p>`;
+  }
+
+  const e = estObra(o.id) || {};
+  const prox = proximoEpisodio(o);
+  const vistosTotal = Object.values(e.eps || {}).reduce((n, l) => n + l.length, 0);
+  const total = lista.reduce((n, t) => n + t.lista.length, 0);
+
+  const escolhida = Number(UI.obra.temp);
+  const atual = lista.some((t) => t.temporada === escolhida)
+    ? escolhida
+    : (prox ? prox.t : lista[0].temporada);
+  const t = lista.find((x) => x.temporada === atual);
+  const vistos = new Set((e.eps && e.eps[atual]) || []);
+
+  const retomar = prox ? `<section class="retomar">
+      <span class="retomar-leg">${vistosTotal ? "Continue de onde parou" : "Comece por aqui"}</span>
+      <div class="retomar-in">
+        ${imgEp(prox, "retomar-img")}
+        <div class="retomar-txt">
+          <strong>${esc(prox.titulo || "Episódio " + prox.ep)}</strong>
+          <span class="mudo mini">${codigoEp(prox.t, prox.ep)}${prox.data ? " · " + dataCurta(prox.data) : ""}${prox.minutos ? " · " + prox.minutos + " min" : ""}</span>
+        </div>
+        <button class="bt bt--forte bt--mini" data-acao="ep" data-obra="${esc(o.id)}" data-t="${prox.t}" data-e="${prox.ep}">${ic("check")}Vi esse</button>
+      </div></section>` : `<section class="retomar retomar--fim"><span class="retomar-leg">Você viu todos os ${total} episódios.</span></section>`;
+
+  const pilulas = `<div class="temp-pil" role="tablist">${lista.map((x) => {
+    const v = ((e.eps && e.eps[x.temporada]) || []).length;
+    const completa = v >= x.lista.length;
+    return `<button class="pil${x.temporada === atual ? " pil--on" : ""}${completa ? " pil--ok" : ""}" role="tab" aria-selected="${x.temporada === atual}" data-acao="filtro" data-k="obra.temp" data-v="${x.temporada}" data-dica="${esc(x.titulo || "Temporada " + x.temporada)} — ${v} de ${x.lista.length} vistos">T${x.temporada}</button>`;
+  }).join("")}</div>`;
+
+  const cabecalho = `<div class="temp-cab">
+      <div><h3 class="h2">${esc(t.titulo || "Temporada " + atual)}</h3>
+        <p class="mudo mini">${t.data ? new Date(t.data).getFullYear() + " · " : ""}${plural(t.lista.length, "episódio", "episódios")} · ${vistos.size} ${vistos.size === 1 ? "visto" : "vistos"}</p></div>
+      <button class="bt bt--mini" data-acao="temp-toda" data-obra="${esc(o.id)}" data-t="${atual}">${vistos.size === t.lista.length ? ic("x") + "Desmarcar a temporada" : ic("check") + "Marcar a temporada toda"}</button>
+    </div>${barra(Math.round((vistos.size / t.lista.length) * 100), "barra--fina")}`;
+
+  const eps = t.lista.map((ep) => {
+    const vi = vistos.has(ep.ep);
+    return `<article class="epc${vi ? " epc--vi" : ""}">
+      ${imgEp(ep, "epc-img")}
+      <div class="epc-txt">
+        <span class="epc-t">${esc(ep.titulo || "Episódio " + ep.ep)}</span>
+        <span class="epc-m">${codigoEp(atual, ep.ep)}${ep.data ? " · " + dataCurta(ep.data) : ""}${ep.minutos ? " · " + ep.minutos + " min" : ""}${ep.nota ? ` · ${ic("estrela", "ic--cheio")}${Number(ep.nota).toFixed(1)}` : ""}</span>
+        ${ep.resumo ? `<span class="epc-r">${esc(ep.resumo)}</span>` : ""}
+      </div>
+      <button class="epc-bt${vi ? " epc-bt--on" : ""}" data-acao="ep" data-obra="${esc(o.id)}" data-t="${atual}" data-e="${ep.ep}" aria-pressed="${vi}" data-dica="${vi ? "Marcar como não visto" : "Marcar como visto"}">${ic(vi ? "check" : "olho")}</button>
+    </article>`;
+  }).join("");
+
+  return retomar + pilulas + cabecalho + `<div class="epl">${eps}</div>`;
+}
+const codigoEp = (t, n) => `T${String(t).padStart(2, "0")}E${String(n).padStart(2, "0")}`;
+function imgEp(ep, classe) {
+  return ep.imagem
+    ? `<img class="${classe}" src="https://image.tmdb.org/t/p/w300${esc(ep.imagem)}" alt="" loading="lazy">`
+    : `<span class="${classe} ${classe}--vazia" aria-hidden="true">${ic("tv")}</span>`;
 }
 
 // A ficha do personagem no pé do guia: lado, poderes, equipes, apelidos.
@@ -2128,8 +2265,14 @@ function pgObra(id) {
   const temElenco = o.elenco.length || (o.tmdb && o.tmdb.i);
   const prog = blocoProgresso(o, e);
 
+  // Personagens vem antes de bastidores: o site é sobre os heróis, não sobre
+  // quem os interpretou.
+  const serie = o.tmdb && o.tmdb.t === "tv";
   const abas = [["sobre", "Sobre"]];
-  if (temElenco) abas.push(["elenco", o.formato === "hq" ? "Personagens" : "Elenco"]);
+  if (serie) abas.push(["episodios", "Episódios"]);
+  if (o.edicoes) abas.push(["edicoes", "Edições"]);
+  if (o.elenco.length) abas.push(["personagens", "Personagens"]);
+  if (temElenco) abas.push(["bastidores", o.formato === "hq" ? "Autores" : "Bastidores"]);
   abas.push(["resenhas", `Resenhas (${resenhas.length})`]);
   if (mesmoU.length || listas.length) abas.push(["relacionadas", "Relacionadas"]);
   const atual = abaAtual(abas, "obra.aba", "sobre");
@@ -2138,10 +2281,16 @@ function pgObra(id) {
   if (atual === "sobre") {
     corpo = (o.nota ? `<p class="aviso">${esc(o.nota)}</p>` : "")
       + (o.cv ? `<section class="q bloco"><h2 class="h2">Sobre a saga</h2><div data-saga="${esc(o.id)}"><p class="mudo">Buscando...</p></div></section>` : "")
-      + prog
-      + (o.elenco.length && !breve ? blocoNotasPersonagens(o) : "")
-      + (!o.cv && !prog && !o.elenco.length ? `<p class="mudo">Ainda não há ficha escrita para esta. Dê nota, registre no diário ou veja o elenco.</p>` : "");
-  } else if (atual === "elenco") {
+      + (serie || o.edicoes ? "" : prog)
+      + (!o.cv && !prog && !o.elenco.length ? `<p class="mudo">Ainda não há ficha escrita para esta. Dê nota, registre no diário ou veja os personagens.</p>` : "");
+  } else if (atual === "episodios") {
+    corpo = abaEpisodios(o);
+  } else if (atual === "edicoes") {
+    corpo = blocoProgresso(o, e) || `<p class="mudo">Sem edições cadastradas.</p>`;
+  } else if (atual === "personagens") {
+    corpo = `<div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>`
+      + (o.elenco.length && !breve ? blocoNotasPersonagens(o) : "");
+  } else if (atual === "bastidores") {
     corpo = o.elenco.length
       ? `<div class="elenco">${o.elenco.map((x) => cartaoElenco(o, x)).join("")}</div>`
         + (o.formato !== "hq" ? `<p class="mudo mini">Dublagem brasileira só aparece quando está confirmada.</p>` : "")
@@ -2156,6 +2305,7 @@ function pgObra(id) {
   }
 
   const fundo = CAPAS_ONLINE && o.tmdb ? `<img class="faixa-bg" data-tmdb-fundo="${esc(o.id)}" alt="">` : "";
+  if (serie) PRECISA_TEMPORADAS = o;
   // Na obra o guia não vira gaveta no celular: marcar "Terminei" e dar nota são
   // as ações principais do site e não podem ficar escondidas.
   return `<div class="brilho" style="--c1:${u.cor}">${fundo}</div>`
@@ -3442,6 +3592,61 @@ function hidratarSagas(raiz = document) {
   }
 }
 
+// ================= Temporadas e episódios =================
+// Vêm do Supabase, buscados quando a pessoa abre a série. As obras feitas à
+// mão já trazem as temporadas no catálogo; as importadas ganham aqui.
+const EPS = { porSerie: new Map(), prontos: new Map() };
+
+function temporadasDaSerie(o) {
+  const t = o.tmdb;
+  if (!t || !t.i || t.t !== "tv") return Promise.resolve(null);
+  if (EPS.porSerie.has(t.i)) return EPS.porSerie.get(t.i);
+  const p = Promise.all([
+    doSupabase("temporadas", { select: "temporada,titulo,data,cartaz,eps", serie: "eq." + t.i, order: "temporada.asc" }),
+    doSupabase("episodios", { select: "temporada,ep,titulo,resumo,data,minutos,imagem,nota", serie: "eq." + t.i, order: "temporada.asc,ep.asc", limit: "900" }),
+  ]).then(([temps, eps]) => {
+    const porT = new Map();
+    for (const e of eps) {
+      if (!porT.has(e.temporada)) porT.set(e.temporada, []);
+      porT.get(e.temporada).push(e);
+    }
+    return temps.map((t2) => ({ ...t2, lista: porT.get(t2.temporada) || [] })).filter((t2) => t2.lista.length);
+  }).catch(() => []);
+  EPS.porSerie.set(t.i, p);
+  return p;
+}
+
+function pedirTemporadas(o, aoChegar) {
+  const t = o.tmdb;
+  if (!t || !t.i || t.t !== "tv" || EPS.prontos.has(o.id)) return false;
+  EPS.prontos.set(o.id, null);
+  temporadasDaSerie(o).then((lista) => {
+    EPS.prontos.set(o.id, lista || []);
+    // A lista real de episódios manda: o progresso por temporada passa a contar
+    // por ela, inclusive nas obras cadastradas à mão.
+    if (lista && lista.length) {
+      o.temporadas = lista.map((t2) => ({ n: t2.temporada, eps: t2.lista.length }));
+    }
+    aoChegar();
+  }).catch(() => { EPS.prontos.set(o.id, []); aoChegar(); });
+  return true;
+}
+const temporadasProntas = (o) => EPS.prontos.get(o.id) || null;
+
+// O próximo episódio que a pessoa ainda não viu.
+function proximoEpisodio(o) {
+  const lista = temporadasProntas(o);
+  if (!lista || !lista.length) return null;
+  const e = estObra(o.id) || {};
+  for (const t of lista) {
+    const vistos = (e.eps && e.eps[t.temporada]) || [];
+    for (const ep of t.lista) {
+      if (!vistos.includes(ep.ep)) return { t: t.temporada, ...ep };
+    }
+  }
+  return null;
+}
+
 // ================= Dicas que aparecem ao passar o mouse =================
 // A ideia é da Steam: dar a informação na hora, sem obrigar a abrir a página e
 // voltar. Dois tamanhos: a dica curta (um selo, um título cortado) e o cartão,
@@ -3574,7 +3779,11 @@ function desenhar({ manterScroll = false } = {}) {
   if (faltaCatalogo(rota)) {
     main.insertAdjacentHTML("beforeend", `<p class="carregando-cat">Carregando o resto do catálogo...</p>`);
     pedirCatalogo();
-  } else if (rota.nome === "personagem" && C.P.has(rota.arg)) {
+  } else if (PRECISA_TEMPORADAS) {
+    const o = PRECISA_TEMPORADAS; PRECISA_TEMPORADAS = null;
+    pedirTemporadas(o, () => { const r = rotaAtual(); if (r.nome === "obra" && r.arg === o.id) desenhar({ manterScroll: true }); });
+  }
+  if (rota.nome === "personagem" && C.P.has(rota.arg)) {
     pedirElencoDoPersonagem(rota.arg, () => { if (rotaAtual().arg === rota.arg) desenhar({ manterScroll: true }); });
     prepararGaveta();
   }
